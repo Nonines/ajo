@@ -12,15 +12,15 @@ Status: Accepted.
 
 Initial permissions:
 
-| Capability | Manager | Admin |
-| --- | --- | --- |
-| Customer lookup and ops exceptions | Yes | Yes |
-| Withdrawal review, making, and checking | Yes | Yes |
-| Manual adjustments, waivers, plan holds, recovery-release approvals | Yes | Yes |
-| Product configuration and rate approvals | No | Yes |
-| Staff and permission management | No | Yes |
-| Simulator and global audit viewer | No | Yes |
-| Corrective closure and write-off | No | Yes |
+| Capability                                                          | Manager | Admin |
+| ------------------------------------------------------------------- | ------- | ----- |
+| Customer lookup and ops exceptions                                  | Yes     | Yes   |
+| Withdrawal review, making, and checking                             | Yes     | Yes   |
+| Manual adjustments, waivers, plan holds, recovery-release approvals | Yes     | Yes   |
+| Product configuration and rate approvals                            | No      | Yes   |
+| Staff and permission management                                     | No      | Yes   |
+| Simulator and global audit viewer                                   | No      | Yes   |
+| Corrective closure and write-off                                    | No      | Yes   |
 
 ## Rationale
 

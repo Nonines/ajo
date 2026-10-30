@@ -6,14 +6,14 @@ Status: Accepted.
 
 Deliver Ajo's NGN savings core in six ordered phases:
 
-| Phase | Scope |
-| --- | --- |
-| 0 | Laravel foundation, authentication, Filament panels, and CI |
-| 1 | Double-entry ledger, wallet, and invariant tests |
-| 2 | Paystack deposits, webhooks, idempotency, and verification |
-| 3 | Fixed-term savings, interest accrual, and maturity |
-| 4 | Withdrawals, maker-checker, and audit trail |
-| 5 | Compounding, early termination, penalties, and rollover |
+| Phase | Scope                                                       |
+| ----- | ----------------------------------------------------------- |
+| 0     | Laravel foundation, authentication, Filament panels, and CI |
+| 1     | Double-entry ledger, wallet, and invariant tests            |
+| 2     | Paystack deposits, webhooks, idempotency, and verification  |
+| 3     | Fixed-term savings, interest accrual, and maturity          |
+| 4     | Withdrawals, maker-checker, and audit trail                 |
+| 5     | Compounding, early termination, penalties, and rollover     |
 
 Each phase has a goal, ordered steps, verification evidence, and a definition of done, followed by a review checkpoint. Routine implementation follows repository conventions and documented package defaults. New architectural or business policies require explicit approval; concrete visual tokens require design sign-off before UI implementation.
 

@@ -13,20 +13,20 @@ Status: Accepted.
 
 Account classification:
 
-| Account | Type |
-| --- | --- |
-| customer:{id}:wallet | Liability |
-| plan:{id}:principal | Liability |
-| plan:{id}:interest_payable | Liability |
-| house:cash_at_gateway | Asset |
-| house:interest_expense | Expense |
-| house:penalty_income | Income |
-| house:gateway_fees | Expense |
-| clearing:deposits_in_transit | Asset |
-| clearing:payouts_in_transit | Liability |
-| house:fee_recovery_income | Income |
-| house:withholding_tax_payable | Liability |
-| customer:{id}:reversal_receivable | Asset |
+| Account                           | Type      |
+| --------------------------------- | --------- |
+| customer:{id}:wallet              | Liability |
+| plan:{id}:principal               | Liability |
+| plan:{id}:interest_payable        | Liability |
+| house:cash_at_gateway             | Asset     |
+| house:interest_expense            | Expense   |
+| house:penalty_income              | Income    |
+| house:gateway_fees                | Expense   |
+| clearing:deposits_in_transit      | Asset     |
+| clearing:payouts_in_transit       | Liability |
+| house:fee_recovery_income         | Income    |
+| house:withholding_tax_payable     | Liability |
+| customer:{id}:reversal_receivable | Asset     |
 
 Approved write-offs require an expense counterpart.
 
