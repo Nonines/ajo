@@ -36,8 +36,12 @@ class AdminPanelProvider extends PanelProvider
             ->multiFactorAuthentication([
                 StaffAppAuthentication::make()->recoverable(),
             ], isRequired: true)
+            ->brandName('Ajo')
+            ->brandLogo(asset('ajo-logo.svg'))
+            ->darkModeBrandLogo(asset('ajo-logo-dark.svg'))
+            ->font('Instrument Sans')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::hex('#D7F75B'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
