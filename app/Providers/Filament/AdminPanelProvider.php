@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Support\StaffAppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -28,6 +29,13 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->authGuard('staff')
+            ->authPasswordBroker('staff')
+            ->passwordReset()
+            ->profile()
+            ->multiFactorAuthentication([
+                StaffAppAuthentication::make()->recoverable(),
+            ], isRequired: true)
             ->colors([
                 'primary' => Color::Amber,
             ])
