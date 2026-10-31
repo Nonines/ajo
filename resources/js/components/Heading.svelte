@@ -13,8 +13,8 @@
 <header class={variant === 'small' ? '' : 'mb-8 space-y-0.5'}>
     <h2
         class={variant === 'small'
-            ? 'mb-0.5 text-base font-medium'
-            : 'text-xl font-semibold tracking-tight'}
+            ? 'font-display mb-0.5 text-base font-bold'
+            : 'font-display text-2xl font-bold tracking-tight'}
     >
         {title}
     </h2>
