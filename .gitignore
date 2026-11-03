@@ -13,6 +13,7 @@
 /resources/js/actions
 /resources/js/routes
 /resources/js/wayfinder
+/docs/adr
 /vendor
 .DS_Store
 .env
@@ -44,6 +45,7 @@ yarn-error.log
 /AGENTS.md
 /CLAUDE.md
 /PROJECT.md
+/PLAN.md
 /boost.json
 /opencode.json
 /opencode.jsonc

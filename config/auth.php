@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Staff;
 use App\Models\User;
 
 return [
@@ -38,6 +39,7 @@ return [
     */
 
     'guards' => [
+        'staff' => ['driver' => 'session', 'provider' => 'staff'],
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
@@ -62,6 +64,7 @@ return [
     */
 
     'providers' => [
+        'staff' => ['driver' => 'eloquent', 'model' => Staff::class],
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
@@ -93,6 +96,12 @@ return [
     */
 
     'passwords' => [
+        'staff' => [
+            'provider' => 'staff',
+            'table' => 'staff_password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),

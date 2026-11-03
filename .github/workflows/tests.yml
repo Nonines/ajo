@@ -13,6 +13,17 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,4 +46,7 @@ jobs:
         run: composer setup
 
       - name: Run CI Checks
+        env:
+          REDIS_CLIENT: predis
+          RUN_REDIS_TESTS: 1
         run: composer ci:check

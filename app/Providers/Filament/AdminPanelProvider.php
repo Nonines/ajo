@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Support\StaffAppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -28,8 +29,19 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->authGuard('staff')
+            ->authPasswordBroker('staff')
+            ->passwordReset()
+            ->profile()
+            ->multiFactorAuthentication([
+                StaffAppAuthentication::make()->recoverable(),
+            ], isRequired: true)
+            ->brandName('Ajo')
+            ->brandLogo(asset('ajo-logo.svg'))
+            ->darkModeBrandLogo(asset('ajo-logo-dark.svg'))
+            ->font('Instrument Sans')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::hex('#D7F75B'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

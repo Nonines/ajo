@@ -2,43 +2,43 @@
     import { dashboard } from '@/routes';
 
     export const layout = {
-        breadcrumbs: [
-            {
-                title: 'Dashboard',
-                href: dashboard(),
-            },
-        ],
+        breadcrumbs: [{ title: 'Dashboard', href: dashboard() }],
     };
 </script>
 
 <script lang="ts">
+    import { Link, page } from '@inertiajs/svelte';
     import AppHead from '@/components/AppHead.svelte';
-    import PlaceholderPattern from '@/components/PlaceholderPattern.svelte';
+    import { Button } from '@/components/ui/button';
+    import { edit as editProfile } from '@/routes/profile';
+    import { edit as editSecurity } from '@/routes/security';
 </script>
 
-<AppHead title="Dashboard" />
+<AppHead title="Your account" />
 
-<div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-    <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-        <div
-            class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-        >
-            <PlaceholderPattern />
-        </div>
-        <div
-            class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-        >
-            <PlaceholderPattern />
-        </div>
-        <div
-            class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-        >
-            <PlaceholderPattern />
-        </div>
+<div class="flex flex-1 flex-col gap-8 p-6 sm:p-10">
+    <section class="rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[4px_4px_0_var(--foreground)] sm:p-10">
+        <p class="mb-4 font-mono text-xs font-bold tracking-widest uppercase">Your next chapter</p>
+        <h1 class="font-display text-4xl font-black tracking-tight sm:text-5xl">Welcome, {page.props.auth.user.name}.</h1>
+        <p class="mt-4 max-w-xl leading-relaxed">Your account is ready. Take a moment to make it yours and review your security settings.</p>
+    </section>
+    <div class="grid gap-6 lg:grid-cols-2">
+        <section class="flex flex-col items-start gap-4 rounded-md border-2 border-foreground bg-card p-6">
+            <span class="font-mono text-sm text-muted-foreground">01 / THE BASICS</span>
+            <h2 class="font-display text-2xl font-bold">Make yourself at home.</h2>
+            <p class="text-muted-foreground">Keep your name and email address up to date.</p>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}<Link {...props} href={editProfile()}>Review your profile</Link>{/snippet}
+            </Button>
+        </section>
+        <section class="flex flex-col items-start gap-4 rounded-md border-2 border-foreground bg-card p-6">
+            <span class="font-mono text-sm text-muted-foreground">02 / PEACE OF MIND</span>
+            <h2 class="font-display text-2xl font-bold">A stronger front door.</h2>
+            <p class="text-muted-foreground">Manage your password, two-factor authentication, and passkeys.</p>
+            <Button variant="outline" asChild>
+                {#snippet children(props)}<Link {...props} href={editSecurity()}>Review account security</Link>{/snippet}
+            </Button>
+        </section>
     </div>
-    <div
-        class="relative min-h-screen flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
-    >
-        <PlaceholderPattern />
-    </div>
+    <p class="text-xs text-muted-foreground">Ajo is a fictional savings platform. Payments are test-mode only.</p>
 </div>
