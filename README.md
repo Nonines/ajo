@@ -26,7 +26,6 @@ resources/js/         Svelte pages, layouts, shared components
 resources/css/        Customer theme
 routes/               Customer routes and scheduled commands
 tests/                Pest feature and unit tests
-docs/adr/             Architecture decisions
 .github/workflows/    CI with Redis integration coverage
 ```
 
@@ -44,5 +43,3 @@ flowchart LR
 ```
 
 SQLite stores application data. Redis provides caching, locks, and queues through Predis; local development uses native Valkey, while CI uses Redis. Horizon reserves separate capacity for `default`, `webhooks`, `accrual`, and `payouts`; financial jobs will arrive with their respective features.
-
-See the [architecture decisions](docs/adr/README.md) for scope and policies.
