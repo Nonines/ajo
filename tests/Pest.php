@@ -1,5 +1,11 @@
 <?php
 
+use App\Models\Journal;
+use App\Models\LedgerAccount;
+use App\Models\User;
+use App\Support\Ledger;
+use App\Support\Money;
+use App\Support\Wallets;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +53,18 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+pest()->beforeEach(function (): void {
+    config(['ledger.lock_store' => 'array']);
+})->in('Feature');
+
+function postWalletTestCredit(User $user, string $key = 'credit', int $kobo = 10000): Journal
+{
+    $wallet = app(Wallets::class)->provision($user);
+
+    return app(Ledger::class)->post($key, [
+        ['account_id' => $wallet->id, 'amount' => new Money(-$kobo)],
+        ['account_id' => LedgerAccount::where('code', 'house:cash_at_gateway')->sole()->id, 'amount' => new Money($kobo)],
+    ], '2026-11-01', 'Test credit', $user->id);
 }
