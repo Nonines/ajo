@@ -10,6 +10,7 @@
     import { Link, page } from '@inertiajs/svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { Button } from '@/components/ui/button';
+    import { index as wallet } from '@/routes/wallet';
     import { edit as editProfile } from '@/routes/profile';
     import { edit as editSecurity } from '@/routes/security';
 </script>
@@ -22,6 +23,9 @@
         <h1 class="font-display text-4xl font-black tracking-tight sm:text-5xl">Welcome, {page.props.auth.user.name}.</h1>
         <p class="mt-4 max-w-xl leading-relaxed">Your account is ready. Take a moment to make it yours and review your security settings.</p>
     </section>
+    <Button variant="outline" asChild>
+        {#snippet children(props)}<Link {...props} href={wallet()}>View your wallet and transactions</Link>{/snippet}
+    </Button>
     <div class="grid gap-6 lg:grid-cols-2">
         <section class="flex flex-col items-start gap-4 rounded-md border-2 border-foreground bg-card p-6">
             <span class="font-mono text-sm text-muted-foreground">01 / THE BASICS</span>

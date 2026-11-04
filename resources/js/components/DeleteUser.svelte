@@ -21,7 +21,7 @@
     <Heading
         variant="small"
         title="Delete account"
-        description="Delete your account and all of its resources"
+        description="Close your account. Financial records are retained when required."
     />
     <div
         class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10"
@@ -50,11 +50,7 @@
                                 >Are you sure you want to delete your account?</DialogTitle
                             >
                             <DialogDescription>
-                                Once your account is deleted, all of its
-                                resources and data will also be permanently
-                                deleted. Please enter your password to confirm
-                                you would like to permanently delete your
-                                account.
+                                An unused account is permanently deleted. If you have financial history, your account is deactivated and those records are retained. Please enter your password to confirm account closure.
                             </DialogDescription>
                         </div>
 

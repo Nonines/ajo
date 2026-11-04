@@ -1,0 +1,158 @@
+<?php
+
+namespace App\Support;
+
+use App\Contracts\Clock;
+use App\Models\Journal;
+use App\Models\LedgerAccount;
+use App\Models\User;
+use Brick\Math\BigInteger;
+use DomainException;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+
+class Ledger
+{
+    public function __construct(private FinancialTransaction $transactions, private Clock $clock) {}
+
+    /** @param list<array{account_id: int, amount: Money}> $entries */
+    public function post(string $key, array $entries, string $effectiveDate, string $description, ?int $customerId = null, ?int $reversesId = null): Journal
+    {
+        $date = explode('-', $effectiveDate);
+        if (! preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $effectiveDate) || ! checkdate((int) ($date[1] ?? 0), (int) ($date[2] ?? 0), (int) $date[0])) {
+            throw new InvalidArgumentException('Invalid economic effective date.');
+        }
+        if ($key === '' || strlen($key) > 255 || $description === '' || mb_strlen($description) > 255 || count($entries) < 2) {
+            throw new InvalidArgumentException('A journal requires a key, description, and at least two entries.');
+        }
+        $sum = BigInteger::zero();
+        $canonical = [];
+        $movements = [];
+        foreach ($entries as $entry) {
+            if ($entry['amount']->kobo === 0) {
+                throw new InvalidArgumentException('Journal entries require nonzero Money amounts.');
+            }
+            $sum = $sum->plus($entry['amount']->kobo);
+            $canonical[] = ['account_id' => $entry['account_id'], 'amount' => (string) $entry['amount']->kobo];
+            $movements[$entry['account_id']] = ($movements[$entry['account_id']] ?? BigInteger::zero())->plus($entry['amount']->kobo);
+        }
+        if (! $sum->isZero()) {
+            throw new DomainException('Journal entries must balance.');
+        }
+        usort($canonical, static fn (array $left, array $right): int => ($left['account_id'] <=> $right['account_id']) ?: strcmp($left['amount'], $right['amount']));
+        $fingerprint = hash('sha256', json_encode([$canonical, 'NGN', $effectiveDate, $description, $customerId, $reversesId], JSON_THROW_ON_ERROR));
+
+        return $this->transactions->run($customerId === null ? [] : [$customerId], function () use ($key, $canonical, $movements, $fingerprint, $effectiveDate, $description, $customerId, $reversesId): Journal {
+            $existing = Journal::where('operation_key', $key)->first();
+            if ($existing !== null) {
+                if (! hash_equals($existing->fingerprint, $fingerprint)) {
+                    throw new DomainException('Operation key was already used with different inputs.');
+                }
+
+                return $existing;
+            }
+            $accounts = LedgerAccount::whereIn('id', array_keys($movements))->get()->keyBy('id');
+            if ($accounts->count() !== count($movements)) {
+                throw new DomainException('Unknown ledger account.');
+            }
+            $balances = [];
+            foreach ($movements as $id => $amount) {
+                $account = $accounts[$id];
+                if ($account->currency !== 'NGN' || ($account->user_id !== null && $account->user_id !== $customerId)) {
+                    throw new DomainException('Account currency or customer ownership mismatch.');
+                }
+                $balance = BigInteger::of($this->balance($account)->kobo)->plus($amount);
+                if ($account->user_id !== null && $account->code === 'customer:'.$account->user_id.':wallet') {
+                    $customer = User::findOrFail($account->user_id);
+                    if ($balance->isPositive()) {
+                        throw new DomainException('Insufficient wallet funds.');
+                    }
+                    // Validate the positive entitlement as well as the signed liability.
+                    $balance->negated()->toInt();
+                    if ($amount->isPositive() && (! $customer->is_active || ! $customer->hasVerifiedEmail())) {
+                        throw new DomainException('Only active verified customers can spend.');
+                    }
+                }
+                $balances[$id] = $balance->toInt();
+            }
+            if ($reversesId !== null) {
+                $original = Journal::findOrFail($reversesId);
+                $reversed = [];
+                foreach ($original->entries as $entry) {
+                    $reversed[$entry->account_id] = ($reversed[$entry->account_id] ?? BigInteger::zero())->minus($entry->amount->kobo);
+                }
+                ksort($reversed);
+                $actual = $movements;
+                ksort($actual);
+                if (array_map(strval(...), $actual) !== array_map(strval(...), $reversed)) {
+                    throw new DomainException('A reversal must exactly reverse its linked journal.');
+                }
+            }
+            $journalId = DB::table('journals')->insertGetId([
+                'operation_key' => $key, 'fingerprint' => $fingerprint, 'currency' => 'NGN',
+                'effective_date' => $effectiveDate, 'posted_at' => $this->clock->now()->utc()->format('Y-m-d H:i:s.u'),
+                'description' => $description, 'reverses_id' => $reversesId,
+            ]);
+            foreach ($canonical as $entry) {
+                DB::table('ledger_entries')->insert(['journal_id' => $journalId, 'account_id' => $entry['account_id'], 'amount' => (new Money($entry['amount']))->kobo]);
+            }
+            foreach ($balances as $id => $balance) {
+                DB::table('ledger_accounts')->where('id', $id)->update(['balance' => $balance]);
+            }
+
+            return Journal::findOrFail($journalId);
+        });
+    }
+
+    public function reverse(Journal $journal, string $key, string $effectiveDate, string $description, ?int $customerId = null): Journal
+    {
+        $entries = [];
+        foreach ($journal->entries()->get() as $entry) {
+            if ($entry->amount->kobo === PHP_INT_MIN) {
+                // The positive counterpart needs two individually representable entries.
+                $entries[] = ['account_id' => $entry->account_id, 'amount' => new Money(PHP_INT_MAX)];
+                $entries[] = ['account_id' => $entry->account_id, 'amount' => new Money(1)];
+            } else {
+                $entries[] = ['account_id' => $entry->account_id, 'amount' => $entry->amount->negate()];
+            }
+        }
+
+        return $this->post($key, $entries, $effectiveDate, $description, $customerId, $journal->id);
+    }
+
+    public function balance(LedgerAccount $account, ?string $effectiveThrough = null): Money
+    {
+        $query = $account->entries();
+        if ($effectiveThrough !== null) {
+            $query->whereHas('journal', fn ($query) => $query->where('effective_date', '<=', $effectiveThrough));
+        }
+        $sum = BigInteger::zero();
+        foreach ($query->cursor() as $entry) {
+            $sum = $sum->plus($entry->amount->kobo);
+        }
+
+        return new Money((string) $sum);
+    }
+
+    public function rebuildProjections(): void
+    {
+        $this->transactions->run([], function (): void {
+            foreach (LedgerAccount::cursor() as $account) {
+                DB::table('ledger_accounts')->where('id', $account->id)->update(['balance' => $this->balance($account)->kobo]);
+            }
+        });
+    }
+
+    /** @return list<int> */
+    public function projectionMismatches(): array
+    {
+        $mismatches = [];
+        foreach (LedgerAccount::cursor() as $account) {
+            if ($account->balance->kobo !== $this->balance($account)->kobo) {
+                $mismatches[] = $account->id;
+            }
+        }
+
+        return $mismatches;
+    }
+}
