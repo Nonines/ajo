@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Closure;
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,9 @@ use Throwable;
 
 class FinancialTransaction
 {
+    /** @var array<int, Lock> */
+    private array $heldLocks = [];
+
     /**
      * @template T
      *
@@ -27,13 +31,20 @@ class FinancialTransaction
         $locks = [];
         try {
             foreach ($customerIds as $id) {
+                if (isset($this->heldLocks[$id])) {
+                    continue;
+                }
+                if ($this->heldLocks !== [] && $id < max(array_keys($this->heldLocks))) {
+                    throw new LogicException('Nested financial operations must preserve customer lock ordering.');
+                }
                 $store = Cache::store(config('ledger.lock_store'))->getStore();
                 if (! $store instanceof LockProvider) {
                     throw new LogicException('The wallet cache store must support locks.');
                 }
                 $lock = $store->lock('wallet:'.$id, config('ledger.lock_seconds'));
                 $lock->block(5);
-                $locks[] = $lock;
+                $locks[$id] = $lock;
+                $this->heldLocks[$id] = $lock;
             }
             $connection = DB::connection();
             if ($connection->getDriverName() !== 'sqlite' || $connection->getConfig('transaction_mode') !== 'IMMEDIATE') {
@@ -58,8 +69,12 @@ class FinancialTransaction
                 }
             }
         } finally {
-            foreach (array_reverse($locks) as $lock) {
-                $lock->release();
+            foreach (array_reverse($locks, preserve_keys: true) as $id => $lock) {
+                try {
+                    $lock->release();
+                } finally {
+                    unset($this->heldLocks[$id]);
+                }
             }
         }
     }
