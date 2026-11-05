@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "15916dbfe7c8ad814d1ee5f5034b60ab",
+    "content-hash": "9f244c09939ca231b325f1698616ac10",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -1290,6 +1290,59 @@
                 }
             ],
             "time": "2025-03-06T22:45:56+00:00"
+        },
+        {
+            "name": "facade/ignition-contracts",
+            "version": "1.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/facade/ignition-contracts.git",
+                "reference": "3c921a1cdba35b68a7f0ccffc6dffc1995b18267"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/facade/ignition-contracts/zipball/3c921a1cdba35b68a7f0ccffc6dffc1995b18267",
+                "reference": "3c921a1cdba35b68a7f0ccffc6dffc1995b18267",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.3|^8.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^v2.15.8",
+                "phpunit/phpunit": "^9.3.11",
+                "vimeo/psalm": "^3.17.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Facade\\IgnitionContracts\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Freek Van der Herten",
+                    "email": "freek@spatie.be",
+                    "homepage": "https://flareapp.io",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Solution contracts for Ignition",
+            "homepage": "https://github.com/facade/ignition-contracts",
+            "keywords": [
+                "contracts",
+                "flare",
+                "ignition"
+            ],
+            "support": {
+                "issues": "https://github.com/facade/ignition-contracts/issues",
+                "source": "https://github.com/facade/ignition-contracts/tree/1.0.2"
+            },
+            "time": "2020-10-16T08:27:54+00:00"
         },
         {
             "name": "filament/actions",
@@ -6201,6 +6254,87 @@
             "time": "2026-10-19T16:16:47+00:00"
         },
         {
+            "name": "spatie/laravel-model-states",
+            "version": "2.14.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/laravel-model-states.git",
+                "reference": "8b109545c6d916b7394c841604b174288259b0b8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/laravel-model-states/zipball/8b109545c6d916b7394c841604b174288259b0b8",
+                "reference": "8b109545c6d916b7394c841604b174288259b0b8",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "facade/ignition-contracts": "^1.0.2|^2.0",
+                "illuminate/contracts": "^12.0|^13.0",
+                "illuminate/database": "^12.0|^13.0",
+                "illuminate/support": "^12.0|^13.0",
+                "php": "^8.4",
+                "spatie/laravel-package-tools": "^1.19",
+                "spatie/php-attribute-reader": "^1.0",
+                "spatie/php-structure-discoverer": "^2.3.1"
+            },
+            "require-dev": {
+                "illuminate/contracts": "^12.0|^13.0",
+                "illuminate/database": "^12.0|^13.0",
+                "illuminate/support": "^12.0|^13.0",
+                "orchestra/testbench": "^10.0|^11.0",
+                "pestphp/pest": "^4.1.4",
+                "spatie/laravel-package-tools": "^1.9",
+                "spatie/php-structure-discoverer": "^2.2",
+                "symfony/var-dumper": "^7.3.5|^8.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Spatie\\ModelStates\\ModelStatesServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Spatie\\ModelStates\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Brent Roose",
+                    "email": "brent@spatie.be",
+                    "homepage": "https://spatie.be",
+                    "role": "Developer"
+                }
+            ],
+            "description": "State support for Eloquent models",
+            "homepage": "https://github.com/spatie/laravel-model-states",
+            "keywords": [
+                "spatie",
+                "state"
+            ],
+            "support": {
+                "source": "https://github.com/spatie/laravel-model-states/tree/2.14.3"
+            },
+            "funding": [
+                {
+                    "url": "https://spatie.be/open-source/support-us",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/spatie",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-11-04T15:43:57+00:00"
+        },
+        {
             "name": "spatie/laravel-package-tools",
             "version": "1.93.3",
             "source": {
@@ -6348,6 +6482,143 @@
                 }
             ],
             "time": "2026-10-19T16:31:21+00:00"
+        },
+        {
+            "name": "spatie/php-attribute-reader",
+            "version": "1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/php-attribute-reader.git",
+                "reference": "46e7484d7b51f5b22d672745c541e48c5a385404"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/php-attribute-reader/zipball/46e7484d7b51f5b22d672745c541e48c5a385404",
+                "reference": "46e7484d7b51f5b22d672745c541e48c5a385404",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "pestphp/pest": "^1.0|^2.0|^3.0|^4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Spatie\\Attributes\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Freek Van der Herten",
+                    "email": "freek@spatie.be",
+                    "homepage": "https://spatie.be",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A clean API for working with PHP attributes",
+            "homepage": "https://github.com/spatie/php-attribute-reader",
+            "keywords": [
+                "attributes",
+                "php-attribute-reader",
+                "reflection",
+                "spatie"
+            ],
+            "support": {
+                "issues": "https://github.com/spatie/php-attribute-reader/issues",
+                "source": "https://github.com/spatie/php-attribute-reader/tree/1.1.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/spatie",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-02-23T09:01:55+00:00"
+        },
+        {
+            "name": "spatie/php-structure-discoverer",
+            "version": "2.4.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/php-structure-discoverer.git",
+                "reference": "fa2b7dae8e8a22c0306154c4b052420e054f7e2b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/php-structure-discoverer/zipball/fa2b7dae8e8a22c0306154c4b052420e054f7e2b",
+                "reference": "fa2b7dae8e8a22c0306154c4b052420e054f7e2b",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/collections": "^11.0|^12.0|^13.0",
+                "php": "^8.3",
+                "spatie/laravel-package-tools": "^1.92.7",
+                "symfony/finder": "^6.0|^7.3.5|^8.0"
+            },
+            "require-dev": {
+                "amphp/parallel": "^2.3.2",
+                "illuminate/console": "^11.0|^12.0|^13.0",
+                "nunomaduro/collision": "^7.0|^8.8.3",
+                "orchestra/testbench": "^9.5|^10.8|^11.0",
+                "pestphp/pest": "^3.8|^4.0",
+                "pestphp/pest-plugin-laravel": "^3.2|^4.0",
+                "phpstan/extension-installer": "^1.4.3",
+                "phpstan/phpstan-deprecation-rules": "^1.2.1",
+                "phpstan/phpstan-phpunit": "^1.4.2",
+                "spatie/laravel-ray": "^1.43.1"
+            },
+            "suggest": {
+                "amphp/parallel": "When you want to use the Parallel discover worker"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Spatie\\StructureDiscoverer\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ruben Van Assche",
+                    "email": "ruben@spatie.be",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Automatically discover structures within your PHP application",
+            "homepage": "https://github.com/spatie/php-structure-discoverer",
+            "keywords": [
+                "discover",
+                "laravel",
+                "php",
+                "php-structure-discoverer"
+            ],
+            "support": {
+                "issues": "https://github.com/spatie/php-structure-discoverer/issues",
+                "source": "https://github.com/spatie/php-structure-discoverer/tree/2.4.4"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/LaravelAutoDiscoverer",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-06-15T07:14:32+00:00"
         },
         {
             "name": "spatie/shiki-php",
