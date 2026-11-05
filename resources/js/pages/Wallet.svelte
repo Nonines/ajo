@@ -13,6 +13,9 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
     import AppHead from '@/components/AppHead.svelte';
+    import { formatMoney } from '@/lib/money';
+    import { index as deposits } from '@/routes/deposits';
+    import { index as notifications } from '@/routes/notifications';
 
     type Transaction = { id: number; amount: string; description: string; effective_date: string; posted_at: string };
     let { balance, history }: {
@@ -20,11 +23,6 @@
         history: { data: Transaction[]; prev_page_url: string | null; next_page_url: string | null };
     } = $props();
 
-    function formatMoney(kobo: string): string {
-        const amount = BigInt(kobo);
-        const absolute = amount < 0n ? -amount : amount;
-        return `${amount < 0n ? '-' : ''}₦${(absolute / 100n).toLocaleString('en-NG')}.${(absolute % 100n).toString().padStart(2, '0')}`;
-    }
 </script>
 
 <AppHead title="Your wallet" />
@@ -34,6 +32,7 @@
         <p class="font-mono text-xs font-bold tracking-widest uppercase">Your wallet / NGN</p>
         <h1 class="mt-4 font-display text-4xl font-black tracking-tight sm:text-5xl">{formatMoney(balance)}</h1>
         <p class="mt-4">Available balance</p>
+        <nav class="mt-4 flex flex-wrap gap-4" aria-label="Wallet actions"><Link href={deposits()} class="font-bold underline">Add money</Link><Link href={notifications()} class="underline">Notifications</Link></nav>
     </section>
     <section class="flex flex-col gap-4 rounded-md border-2 border-foreground bg-card p-6">
         <h2 class="font-display text-2xl font-bold">Transaction history</h2>
