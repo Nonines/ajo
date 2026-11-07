@@ -17,6 +17,7 @@
     import { toUrl } from '@/lib/utils';
     import { dashboard } from '@/routes';
     import { index as savings } from '@/routes/savings';
+    import { index as withdrawals } from '@/routes/withdrawals';
     import type { NavItem } from '@/types';
 
     let {
@@ -26,6 +27,11 @@
     } = $props();
 
     const mainNavItems: NavItem[] = [
+        {
+            title: 'Withdrawals',
+            href: withdrawals(),
+            icon: LayoutGrid,
+        },
         {
             title: 'Savings',
             href: savings(),

@@ -11,7 +11,7 @@
     import { confirm } from '@/routes/deposits';
     import { index as wallet } from '@/routes/wallet';
 
-    type Deposit = { reference: string; state: string; requestedNet: string; gross: string; fee: string; walletCredit: string; debtRepayment: string; recognizedAt: string | null; accessCode: string | null };
+    type Deposit = { reference: string; state: string; origin: string; requestedNet: string; gross: string; fee: string; walletCredit: string; debtRepayment: string; recognizedAt: string | null; accessCode: string | null };
     type Reversal = { id: number; principal: string; fee: string; walletCollected: string; receivableCreated: string };
     let { deposit, remainingDebt, reversals }: { deposit: Deposit; remainingDebt: string; reversals: Reversal[] } = $props();
     let checkoutError = $state('');
@@ -49,6 +49,7 @@
 
 <AppHead title="Deposit status" />
 <div class="flex flex-1 flex-col gap-8 p-6 sm:p-10">
+    {#if deposit.origin === 'simulated'}<p class="rounded-md border-2 border-foreground bg-card p-6">This is an explicitly simulated payment. No real provider charge is made.</p>{/if}
     <section class="rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[4px_4px_0_var(--foreground)]">
         <p class="font-mono text-xs font-bold tracking-widest uppercase">Test payment / {deposit.state.replaceAll('_', ' ')}</p>
         <h1 class="mt-4 font-display text-4xl font-black">{formatMoney(deposit.requestedNet)}</h1>
