@@ -5,18 +5,22 @@ namespace App\Filament\Resources\SavingsProducts;
 use App\Filament\Resources\SavingsProducts\Pages\ManageSavingsProducts;
 use App\Models\SavingsProduct;
 use App\Models\Staff;
+use App\Support\Approvals;
 use App\Support\SavingsProducts;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Validation\ValidationException;
 
 class SavingsProductResource extends Resource
 {
@@ -28,7 +32,13 @@ class SavingsProductResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->components(static::fields());
+    }
+
+    /** @return array<Component> */
+    public static function fields(): array
+    {
+        return [
             TextInput::make('name')->required()->maxLength(255),
             Textarea::make('disclosure')->required()->maxLength(10000)->columnSpanFull()
                 ->helperText('Fixed-term simple interest, Actual/365, locked until maturity. No plan fees. Net maturity proceeds repay recovery debt first.'),
@@ -39,7 +49,7 @@ class SavingsProductResource extends Resource
                 TextInput::make('days')->integer()->minValue(30)->rules(['multiple_of:30'])->required()->distinct(),
                 TextInput::make('annual_rate_bp')->label('Nominal annual rate (basis points)')->integer()->minValue(0)->required(),
             ])->minItems(1)->required()->columnSpanFull(),
-        ]);
+        ];
     }
 
     public static function table(Table $table): Table
@@ -47,7 +57,19 @@ class SavingsProductResource extends Resource
         return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('current_version')->label('Published version')])
             ->recordActions([EditAction::make()->label('Publish new version')
                 ->fillForm(fn (SavingsProduct $record): array => $record->versions()->where('version', $record->current_version)->sole()->contract)
-                ->using(fn (array $data, SavingsProduct $record): SavingsProduct => static::publish($data, $record))]);
+                ->using(fn (array $data, SavingsProduct $record): SavingsProduct => static::publish($data, $record)),
+                Action::make('proposeRates')->label('Propose rate change')
+                    ->schema([...static::fields(), Textarea::make('reason')->required()->maxLength(10000)])
+                    ->fillForm(fn (SavingsProduct $record): array => $record->versions()->where('version', $record->current_version)->sole()->contract)
+                    ->visible(fn (): bool => Filament::auth()->user()?->can('rates.make') ?? false)
+                    ->action(function (SavingsProduct $record, array $data): void {
+                        $staff = Filament::auth()->user();
+                        abort_unless($staff instanceof Staff, 403);
+                        $reason = $data['reason'];
+                        unset($data['reason']);
+                        app(Approvals::class)->propose($staff, 'product.rate', $record, ['data' => $data], $reason);
+                    }),
+            ]);
     }
 
     /** @param array<string, mixed> $data */
@@ -56,7 +78,11 @@ class SavingsProductResource extends Resource
         $staff = Filament::auth()->user();
         abort_unless($staff instanceof Staff, 403);
 
-        return app(SavingsProducts::class)->publish($staff, $data, $product);
+        try {
+            return app(SavingsProducts::class)->publish($staff, $data, $product);
+        } catch (\DomainException $exception) {
+            throw ValidationException::withMessages(['terms' => $exception->getMessage()]);
+        }
     }
 
     public static function getPages(): array

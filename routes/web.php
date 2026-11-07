@@ -4,8 +4,11 @@ use App\Http\Controllers\DepositConfirmationController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentWebhookController;
+use App\Http\Controllers\SavedDestinationController;
 use App\Http\Controllers\SavingsPlanController;
+use App\Http\Controllers\TransferApprovalController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -13,6 +16,11 @@ Route::inertia('/', 'Welcome')->name('home');
 Route::middleware(['auth:web', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::get('wallet', [WalletController::class, 'index'])->name('wallet.index');
+    Route::get('withdrawals', [WithdrawalController::class, 'index'])->name('withdrawals.index');
+    Route::post('withdrawals', [WithdrawalController::class, 'store'])->middleware('throttle:10,1')->name('withdrawals.store');
+    Route::get('withdrawals/{withdrawal}', [WithdrawalController::class, 'show'])->name('withdrawals.show');
+    Route::delete('withdrawals/{withdrawal}', [WithdrawalController::class, 'destroy'])->name('withdrawals.destroy');
+    Route::post('destinations', [SavedDestinationController::class, 'store'])->middleware('throttle:10,1')->name('destinations.store');
 
     Route::prefix('savings')->name('savings.')->controller(SavingsPlanController::class)->group(function () {
         Route::get('/', 'index')->name('index');
@@ -36,5 +44,6 @@ Route::middleware(['auth:web', 'verified'])->group(function () {
 });
 
 Route::post('payments/paystack/webhook', PaymentWebhookController::class)->name('payments.webhook');
+Route::post('payments/paystack/approval', TransferApprovalController::class)->name('payments.approval');
 
 require __DIR__.'/settings.php';

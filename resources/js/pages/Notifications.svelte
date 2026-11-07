@@ -11,6 +11,7 @@
     import { show } from '@/routes/deposits';
     import { update } from '@/routes/notifications';
     import { show as savingsShow } from '@/routes/savings';
+    import { show as withdrawalShow } from '@/routes/withdrawals';
 
     type Notice = { id: string; readAt: string | null; createdAt: string; data: Record<string, string> };
     let { notifications }: { notifications: { data: Notice[]; prev_page_url: string | null; next_page_url: string | null } } = $props();
@@ -22,7 +23,11 @@
     {#if notifications.data.length === 0}<p>No notifications yet.</p>{/if}
     {#each notifications.data as notice (notice.id)}
         <section class="grid gap-3 rounded-md border-2 border-foreground bg-card p-6">
-            {#if notice.data.type === 'savings_maturity'}
+            {#if notice.data.type.startsWith('withdrawal_')}
+                <h2 class="text-xl font-bold">Withdrawal {notice.data.type.slice(11).replaceAll('_', ' ')}</h2>
+                <p>Principal: {formatMoney(notice.data.principal)}. Reserved fee: {formatMoney(notice.data.reserved_fee)}. Actual fee: {notice.data.actual_fee === 'unverified' ? 'awaiting verification' : formatMoney(notice.data.actual_fee)}. Remaining recovery balance: {formatMoney(notice.data.remaining_debt)}.</p>
+                <Link href={withdrawalShow(Number(notice.data.withdrawal_id))} class="underline">View withdrawal</Link>
+            {:else if notice.data.type === 'savings_maturity'}
                 <h2 class="text-xl font-bold">Your savings matured</h2>
                 <p>Principal: {formatMoney(notice.data.principal)}. Gross interest: {formatMoney(notice.data.gross_interest)}. Withholding: {formatMoney(notice.data.withholding)}. Net interest: {formatMoney(notice.data.net_interest)}. Applied to recovery: {formatMoney(notice.data.debt_repayment)}. Paid to wallet: {formatMoney(notice.data.wallet_credit)}. Remaining recovery balance: {formatMoney(notice.data.remaining_debt)}.</p>
                 <Link href={savingsShow(Number(notice.data.plan_id))} class="underline">View maturity statement</Link>

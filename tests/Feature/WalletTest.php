@@ -47,14 +47,14 @@ test('wallet requires customer authentication and verified active identity', fun
     $this->actingAs($user, 'web')->get(route('wallet.index'))->assertForbidden();
 });
 
-test('unused wallet structures do not prevent permanent account deletion', function () {
+test('account closure retains the identity referenced by its new security audit evidence', function () {
     $user = User::factory()->create();
     app(Wallets::class)->provision($user);
 
     $this->actingAs($user)->delete(route('profile.destroy'), ['password' => 'password'])->assertRedirect(route('home'));
 
-    expect($user->fresh())->toBeNull();
-    expect(LedgerAccount::where('user_id', $user->id)->exists())->toBeFalse();
+    expect($user->fresh()->is_active)->toBeFalse();
+    expect(LedgerAccount::where('user_id', $user->id)->exists())->toBeTrue();
 });
 
 test('zero balance customers with financial history are deactivated and references remain', function () {

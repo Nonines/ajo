@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Staff;
 
 use App\Filament\Resources\Staff\Pages\ManageStaff;
 use App\Models\Staff;
+use App\Support\SecurityAudit;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -61,7 +62,8 @@ class StaffResource extends Resource
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->databaseTransaction()
+                    ->after(fn (Staff $record) => app(SecurityAudit::class)->staffPermissions($record)),
             ]);
     }
 

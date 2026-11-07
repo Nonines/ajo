@@ -5,6 +5,7 @@ namespace App\Filament\Ops\Resources\PaymentExceptions;
 use App\Filament\Ops\Resources\PaymentExceptions\Pages\ManagePaymentExceptions;
 use App\Jobs\ProcessPaymentWebhook;
 use App\Jobs\VerifyDeposit;
+use App\Jobs\VerifyWithdrawal;
 use App\Models\PaymentException;
 use App\Models\WebhookEvent;
 use App\Support\PaymentInbox;
@@ -32,7 +33,9 @@ class PaymentExceptionResource extends Resource
                 ->visible(fn (PaymentException $record): bool => $record->resolved_at === null)
                 ->action(function (PaymentException $record, PaymentInbox $inbox): void {
                     Gate::authorize('update', $record);
-                    if ($record->resource_type !== null && $record->resource_id !== null) {
+                    if ($record->resource_type === 'withdrawal' && $record->resource_id !== null) {
+                        VerifyWithdrawal::dispatch((int) $record->resource_id);
+                    } elseif ($record->resource_type !== null && $record->resource_id !== null) {
                         $inbox->observe($record->resource_type, ['id' => $record->resource_id, 'staff_retry' => (string) Str::uuid()]);
                     }
                     if ($record->deposit_id !== null) {
