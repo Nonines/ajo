@@ -6,7 +6,9 @@ use App\Contracts\Clock;
 use App\Jobs\ProcessPaymentWebhook;
 use App\Models\Deposit;
 use App\Models\PaymentException;
+use App\Models\PaymentSimulation;
 use App\Models\WebhookEvent;
+use App\Models\WithdrawalRequest;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,26 +59,37 @@ class PaymentInbox
         return $this->persist($raw);
     }
 
+    public function receiveSimulated(string $raw, string $signature): WebhookEvent
+    {
+        $secret = config('withdrawals.simulation_signing_key');
+        if (! app()->environment(['local', 'testing']) || config('withdrawals.simulation_enabled') !== true
+            || ! is_string($secret) || strlen($secret) < 32 || ! hash_equals(hash_hmac('sha512', $raw, $secret), $signature)) {
+            throw new HttpException(401, 'Invalid simulated webhook signature or environment.');
+        }
+
+        return $this->persist($raw, 'simulated');
+    }
+
     /** @param array<string, mixed> $data */
     public function observe(string $resource, array $data): WebhookEvent
     {
-        if (! in_array($resource, ['transaction', 'refund', 'dispute'], true)) {
+        if (! in_array($resource, ['transaction', 'refund', 'dispute', 'transfer'], true)) {
             throw new DomainException('Unsupported provider observation.');
         }
 
         return $this->persist(json_encode(['event' => 'verified-list.'.$resource, 'data' => $data], JSON_THROW_ON_ERROR));
     }
 
-    private function persist(string $raw): WebhookEvent
+    private function persist(string $raw, string $origin = 'real'): WebhookEvent
     {
-        $event = DB::transaction(function () use ($raw): WebhookEvent {
-            $fingerprint = hash('sha256', $raw);
+        $event = DB::transaction(function () use ($raw, $origin): WebhookEvent {
+            $fingerprint = hash('sha256', $origin."\0".$raw);
             $existing = WebhookEvent::where('fingerprint', $fingerprint)->first();
             if ($existing !== null) {
                 return $existing;
             }
             $event = new WebhookEvent;
-            $event->forceFill(['fingerprint' => $fingerprint, 'payload' => $raw, 'received_at' => $this->clock->now(), 'next_attempt_at' => $this->clock->now()])->save();
+            $event->forceFill(['fingerprint' => $fingerprint, 'payload' => $raw, 'origin' => $origin, 'received_at' => $this->clock->now(), 'next_attempt_at' => $this->clock->now()])->save();
 
             return $event;
         });
@@ -117,12 +130,33 @@ class PaymentInbox
                 if ($deposit === null) {
                     PaymentException::record('orphan_payment', 'Authenticated payment observation has no matching local checkout.', $this->clock->now(), eventId: $id);
                 } else {
+                    if ($deposit->origin !== $claimed->origin) {
+                        throw new DomainException('Deposit adapter provenance does not match the authenticated inbox.');
+                    }
                     $this->deposits->verify($deposit);
                 }
             } elseif (str_starts_with($type, 'refund.') || $type === 'verified-list.refund') {
-                $this->recovery->refund(VerifiedPayment::id($data['id'] ?? null));
+                $refundId = VerifiedPayment::id($data['id'] ?? null);
+                $simulated = PaymentSimulation::where('refund_id', $refundId)->exists();
+                if ($claimed->origin === 'simulated' && ! $simulated) {
+                    throw new DomainException('Refund adapter provenance does not match the authenticated inbox.');
+                }
+                $this->recovery->refund($refundId, $claimed->origin);
             } elseif (str_starts_with($type, 'charge.dispute.') || $type === 'verified-list.dispute') {
+                if ($claimed->origin !== 'real') {
+                    throw new DomainException('Simulated disputes are unsupported.');
+                }
                 $this->recovery->dispute(VerifiedPayment::id($data['id'] ?? null));
+            } elseif (str_starts_with($type, 'transfer.') || $type === 'verified-list.transfer') {
+                $reference = $data['reference'] ?? null;
+                $withdrawal = is_string($reference) ? WithdrawalRequest::where('reference', $reference)->first() : null;
+                if ($withdrawal === null) {
+                    PaymentException::record('orphan_payout', 'Transfer observation has no local reservation.', $this->clock->now(), eventId: $id);
+                } elseif ($withdrawal->origin !== $claimed->origin) {
+                    throw new DomainException('Payout adapter provenance does not match the authenticated inbox.');
+                } else {
+                    app(Withdrawals::class)->verify($withdrawal);
+                }
             }
             WebhookEvent::whereKey($id)->where('claim_token', $token)->update(['processed_at' => $this->clock->now(), 'claim_token' => null, 'claimed_at' => null]);
         } catch (GatewayFailure $exception) {

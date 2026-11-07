@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Staff;
+use App\Support\SecurityAudit;
 use Database\Seeders\StaffPermissionSeeder;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -59,6 +60,7 @@ class CreateInitialAdmin extends Command
                 'password' => $data['password'],
             ]);
             $admin->assignRole('admin');
+            app(SecurityAudit::class)->staffPermissions($admin);
         });
 
         $this->info('Initial administrator created. Sign in to /admin to configure mandatory two-factor authentication.');

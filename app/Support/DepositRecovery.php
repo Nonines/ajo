@@ -16,10 +16,10 @@ class DepositRecovery
 {
     public function __construct(private PaymentGateway $gateway, private FinancialTransaction $transactions, private Ledger $ledger, private Clock $clock, private PaymentNotices $notices) {}
 
-    public function refund(string $id): void
+    public function refund(string $id, string $origin = 'real'): void
     {
-        $refund = $this->gateway->refund($id);
-        $deposit = Deposit::where('provider_id', $refund->transactionId)->first();
+        $refund = $this->gateway->refund($id, $origin);
+        $deposit = Deposit::where('origin', $origin)->where('provider_id', $refund->transactionId)->first();
         if ($deposit === null) {
             PaymentException::record('orphan_refund', 'Verified refund has no recognized local provider transaction.', $this->clock->now(), resourceType: 'refund', resourceId: $id, providerOpen: true);
 
@@ -42,7 +42,7 @@ class DepositRecovery
                 return;
             }
             $fingerprint = hash('sha256', json_encode([$refund->id, $refund->transactionId, $refund->domain, $refund->currency, $refund->amount, $refund->deducted], JSON_THROW_ON_ERROR));
-            $existing = PaymentReversal::where('provider_refund_id', $refund->id)->first();
+            $existing = PaymentReversal::where('origin', $current->origin)->where('provider_refund_id', $refund->id)->first();
             if ($existing !== null) {
                 if ($existing->deposit_id !== $current->id || ! hash_equals($existing->fingerprint, $fingerprint)) {
                     PaymentException::record('refund_mismatch', 'Provider refund changed after its original verified recovery.', $this->clock->now(), $current->id, resourceType: 'refund', resourceId: $refund->id);
@@ -52,7 +52,7 @@ class DepositRecovery
             }
             if ($current->recognition_journal_id === null) {
                 $existing ??= new PaymentReversal;
-                $existing->forceFill(['deposit_id' => $current->id, 'provider_refund_id' => $refund->id, 'provider_dispute_id' => $refund->disputeId,
+                $existing->forceFill(['origin' => $current->origin, 'deposit_id' => $current->id, 'provider_refund_id' => $refund->id, 'provider_dispute_id' => $refund->disputeId,
                     'fingerprint' => $fingerprint, 'amount' => $refund->amount, 'evidence' => $refund->evidence, 'verified_at' => $this->clock->now()])->save();
                 $refunded = PaymentReversal::where('deposit_id', $current->id)->whereNull('journal_id')->sum('amount');
                 if ($payment->status === 'reversed' && $payment->gross > 0 && $payment->fees >= 0
@@ -84,7 +84,7 @@ class DepositRecovery
                 return;
             }
             $effect = $existing ?? new PaymentReversal;
-            $effect->forceFill(['deposit_id' => $current->id, 'provider_refund_id' => $refund->id, 'provider_dispute_id' => $refund->disputeId,
+            $effect->forceFill(['origin' => $current->origin, 'deposit_id' => $current->id, 'provider_refund_id' => $refund->id, 'provider_dispute_id' => $refund->disputeId,
                 'fingerprint' => $fingerprint, 'amount' => $refund->amount, 'principal' => $principal, 'fee' => $fee,
                 'evidence' => $refund->evidence, 'verified_at' => $this->clock->now()])->save();
             $this->ledger->recoverDeposit($effect);
@@ -93,7 +93,7 @@ class DepositRecovery
             }
             PaymentException::where('deposit_id', $current->id)->where('resource_type', 'refund')->where('resource_id', $refund->id)->update(['resolved_at' => $this->clock->now(), 'provider_open' => false]);
             PaymentException::record('recovery_required', 'A verified deposit reversal was applied; review the customer recovery allocation.', $this->clock->now(), $current->id);
-            $this->notices->record($current, 'reversal', 'refund:'.$refund->id, $effect->refresh());
+            $this->notices->record($current, 'reversal', 'refund:'.($current->origin === 'real' ? '' : 'simulated:').$refund->id, $effect->refresh());
         });
     }
 
@@ -115,7 +115,7 @@ class DepositRecovery
         $data = $this->gateway->dispute($id);
         $transaction = $data['transaction'] ?? null;
         $transactionId = VerifiedPayment::id(is_array($transaction) ? ($transaction['id'] ?? null) : $transaction);
-        $deposit = Deposit::where('provider_id', $transactionId)->first();
+        $deposit = Deposit::where('origin', 'real')->where('provider_id', $transactionId)->first();
         if (($data['domain'] ?? null) !== 'test' || $deposit === null) {
             PaymentException::record('dispute_evidence_required', 'Dispute has no verified local test-mode association.', $this->clock->now(), resourceType: 'dispute', resourceId: $id, providerOpen: true);
 

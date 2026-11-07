@@ -49,7 +49,7 @@ class DepositController extends Controller
         abort_unless($deposit->user_id === $request->user('web')->id, 404);
         $receivable = LedgerAccount::where('code', 'customer:'.$deposit->user_id.':reversal_receivable')->sole();
 
-        return Inertia::render('Deposits/Show', ['deposit' => $this->summary($deposit) + ['accessCode' => $deposit->access_code],
+        return Inertia::render('Deposits/Show', ['deposit' => $this->summary($deposit) + ['accessCode' => $deposit->origin === 'simulated' ? null : $deposit->access_code],
             'remainingDebt' => (string) $ledger->balance($receivable)->kobo,
             'reversals' => PaymentReversal::where('deposit_id', $deposit->id)->whereNotNull('journal_id')->orderBy('id')->get()->map(fn (PaymentReversal $effect): array => [
                 'id' => $effect->id, 'principal' => (string) $effect->principal, 'fee' => (string) $effect->fee,
@@ -62,6 +62,7 @@ class DepositController extends Controller
     private function summary(Deposit $deposit): array
     {
         return ['id' => $deposit->id, 'reference' => $deposit->reference, 'state' => (string) $deposit->state,
+            'origin' => $deposit->origin,
             'requestedNet' => (string) $deposit->requested_net, 'gross' => (string) $deposit->gross_amount,
             'fee' => (string) $deposit->fee_amount, 'walletCredit' => (string) $deposit->wallet_credit,
             'debtRepayment' => (string) $deposit->debt_repayment, 'recognizedAt' => $deposit->recognized_at?->toIso8601String()];

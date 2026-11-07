@@ -5,8 +5,10 @@ namespace App\Support;
 use App\Contracts\Clock;
 use App\Models\Journal;
 use App\Models\LedgerAccount;
+use App\Models\PaymentException;
 use App\Models\PaymentReversal;
 use App\Models\User;
+use App\Models\WithdrawalRequest;
 use Brick\Math\BigInteger;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -53,8 +55,56 @@ class Ledger
             }
             $journal = $this->write('deposit-reversal:'.$effect->id, $entries, $this->clock->now()->setTimezone('Africa/Lagos')->toDateString(), 'Verified deposit reversal', $deposit->user_id, systemRecovery: true);
             $effect->forceFill(['wallet_collected' => $collected, 'receivable_created' => $shortfall, 'journal_id' => $journal->id])->save();
+            app(RecoveryControls::class)->activate($deposit->user_id);
 
             return $journal;
+        });
+    }
+
+    public function settleWithdrawalFee(WithdrawalRequest $withdrawal): void
+    {
+        $this->transactions->run([$withdrawal->user_id], function () use ($withdrawal): void {
+            $current = $withdrawal->refresh();
+            $fee = $current->verified_fee;
+            if ($current->principal_journal_id === null || $fee === null || $fee < 0) {
+                throw new DomainException('Payout fee recovery requires verified outcome and fee evidence.');
+            }
+            if ($current->accounted_fee === $fee) {
+                return;
+            }
+            $reserved = $current->accounted_fee === null ? $current->reserved_fee : 0;
+            $delta = $fee - ($current->accounted_fee ?? 0);
+            $due = $delta - $reserved;
+            $entries = [];
+            foreach (['clearing:payouts_in_transit' => $reserved, 'house:cash_at_gateway' => -$delta,
+                'house:gateway_fees' => $delta, 'house:fee_recovery_income' => -$delta] as $code => $amount) {
+                if ($amount !== 0) {
+                    $entries[] = ['account_id' => LedgerAccount::where('code', $code)->sole()->id, 'amount' => new Money($amount)];
+                }
+            }
+            if ($due > 0) {
+                $wallet = LedgerAccount::where('code', 'customer:'.$current->user_id.':wallet')->sole();
+                $collected = min($due, $this->balance($wallet)->negate()->kobo);
+                if ($collected > 0) {
+                    $entries[] = ['account_id' => $wallet->id, 'amount' => new Money($collected)];
+                }
+                if ($due > $collected) {
+                    $entries[] = ['account_id' => LedgerAccount::where('code', 'customer:'.$current->user_id.':reversal_receivable')->sole()->id,
+                        'amount' => new Money($due - $collected)];
+                }
+            } elseif ($due < 0) {
+                $entries = array_merge($entries, app(RecoveryControls::class)->credits($current->user_id, -$due));
+            }
+            $revision = $current->fee_revision + 1;
+            $this->write('withdrawal:'.$current->id.':fee:'.$revision, $entries,
+                $this->clock->now()->setTimezone('Africa/Lagos')->toDateString(), 'Verified payout processing fee',
+                $current->user_id, systemRecovery: true);
+            $current->forceFill(['accounted_fee' => $fee, 'fee_revision' => $revision])->save();
+            if ($fee > $current->reserved_fee) {
+                PaymentException::record('payout_fee_excess', 'Verified payout fee exceeded its immutable quote; excess was collected or booked as recovery debt.',
+                    $this->clock->now(), resourceType: 'withdrawal', resourceId: (string) $current->id);
+            }
+            app(RecoveryControls::class)->activate($current->user_id);
         });
     }
 

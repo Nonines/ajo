@@ -99,7 +99,7 @@ class Deposits
             $current = Deposit::findOrFail($deposit->id);
             if ($payment->reference !== $current->reference || strcasecmp($payment->email, $current->payer_email) !== 0 || $payment->domain !== 'test' || $payment->currency !== 'NGN'
                 || ($current->provider_id !== null && $current->provider_id !== $payment->id)
-                || Deposit::where('provider_id', $payment->id)->where('id', '!=', $current->id)->exists()) {
+                || Deposit::where('origin', $current->origin)->where('provider_id', $payment->id)->where('id', '!=', $current->id)->exists()) {
                 PaymentException::record('verification_mismatch', 'Provider reference, customer, environment, currency, or identity does not match.', $this->clock->now(), $current->id);
 
                 return;
