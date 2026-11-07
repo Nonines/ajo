@@ -143,6 +143,11 @@ class Ledger
                 DB::table('ledger_accounts')->where('id', $id)->update(['balance' => $balance]);
             }
 
+            app(AuditTrail::class)->record('journal.posted', Journal::findOrFail($journalId), [
+                'customer_id' => $customerId, 'operation_key' => $key, 'effective_date' => $effectiveDate,
+                'entries' => $canonical, 'reverses_id' => $reversesId,
+            ]);
+
             return Journal::findOrFail($journalId);
         });
     }

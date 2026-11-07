@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\AuditEvent;
 use App\Models\Deposit;
 use App\Models\LedgerAccount;
 use App\Models\SavingsPlan;
@@ -31,9 +32,13 @@ class Wallets
     {
         $this->transactions->run([$user->id], function () use ($user): void {
             $customer = User::findOrFail($user->id);
+            app(AuditTrail::class)->record('customer.account_closed', $customer, actor: $customer);
             $accounts = LedgerAccount::where('user_id', $customer->id);
             $hasHistory = (clone $accounts)->whereHas('entries')->exists() || Deposit::where('user_id', $customer->id)->exists()
-                || SavingsPlan::where('user_id', $customer->id)->exists();
+                || SavingsPlan::where('user_id', $customer->id)->exists()
+                || DB::table('audit_customer_references')->where('user_id', $customer->id)->exists()
+                || AuditEvent::where(fn ($query) => $query->where('subject_type', $customer->getMorphClass())->where('subject_id', $customer->id))
+                    ->orWhere(fn ($query) => $query->where('causer_type', $customer->getMorphClass())->where('causer_id', $customer->id))->exists();
             if ($hasHistory) {
                 $customer->forceFill(['is_active' => false, 'remember_token' => null])->save();
                 $customer->passkeys()->delete();
