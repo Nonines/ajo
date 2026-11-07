@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @property string $id
  * @property int $user_id
- * @property int $deposit_id
+ * @property int|null $deposit_id
  * @property string $recipient
  * @property array<string, string> $data
  * @property CarbonImmutable|null $mail_sent_at

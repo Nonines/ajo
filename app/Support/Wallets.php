@@ -5,8 +5,10 @@ namespace App\Support;
 use App\Models\AuditEvent;
 use App\Models\Deposit;
 use App\Models\LedgerAccount;
+use App\Models\SavedDestination;
 use App\Models\SavingsPlan;
 use App\Models\User;
+use App\Models\WithdrawalRequest;
 use Illuminate\Support\Facades\DB;
 
 class Wallets
@@ -36,6 +38,8 @@ class Wallets
             $accounts = LedgerAccount::where('user_id', $customer->id);
             $hasHistory = (clone $accounts)->whereHas('entries')->exists() || Deposit::where('user_id', $customer->id)->exists()
                 || SavingsPlan::where('user_id', $customer->id)->exists()
+                || SavedDestination::where('user_id', $customer->id)->exists()
+                || WithdrawalRequest::where('user_id', $customer->id)->exists()
                 || DB::table('audit_customer_references')->where('user_id', $customer->id)->exists()
                 || AuditEvent::where(fn ($query) => $query->where('subject_type', $customer->getMorphClass())->where('subject_id', $customer->id))
                     ->orWhere(fn ($query) => $query->where('causer_type', $customer->getMorphClass())->where('causer_id', $customer->id))->exists();
