@@ -4,6 +4,7 @@ use App\Http\Controllers\DepositConfirmationController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentWebhookController;
+use App\Http\Controllers\SavingsPlanController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,13 @@ Route::inertia('/', 'Welcome')->name('home');
 Route::middleware(['auth:web', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::get('wallet', [WalletController::class, 'index'])->name('wallet.index');
+
+    Route::prefix('savings')->name('savings.')->controller(SavingsPlanController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->middleware('throttle:10,1')->name('store');
+        Route::get('{plan}', 'show')->name('show');
+        Route::patch('{plan}', 'update')->middleware('throttle:10,1')->name('update');
+    });
 
     Route::prefix('deposits')->name('deposits.')->group(function () {
         Route::get('/', [DepositController::class, 'index'])->name('index');
