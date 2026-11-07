@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Contracts\Clock;
+use App\Contracts\PaymentGateway;
+use App\Support\FinancialTransaction;
+use App\Support\PaystackGateway;
 use App\Support\SystemClock;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -18,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Clock::class, SystemClock::class);
+        $this->app->scoped(FinancialTransaction::class);
+        $this->app->bind(PaymentGateway::class, PaystackGateway::class);
     }
 
     /**

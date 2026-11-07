@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'secret_key' => env('PAYSTACK_SECRET_KEY'),
+    'webhook_mode' => env('PAYSTACK_WEBHOOK_MODE', 'legacy'),
+    'webhook_signing_secret' => env('PAYSTACK_WEBHOOK_SIGNING_SECRET'),
+    'minimum_net' => 100000,
+    'maximum_net' => 10000000000,
+    'http_timeout' => 15,
+    'http_connect_timeout' => 5,
+    'provider_budget' => 90,
+    'webhook_max_bytes' => 1048576,
+    'batch_size' => 50,
+    'pages_per_run' => 5,
+    'scan_seconds' => 30,
+    'scan_overlap_minutes' => 1440,
+    'claim_seconds' => 120,
+    'inbox_overdue_minutes' => 5,
+    'initial_delay_minutes' => 15,
+    'escalation_hours' => 24,
+    'verification_minutes' => 5,
+    'aged_verification_minutes' => 60,
+    'failed_verification_minutes' => 1440,
+    'notification_retry_minutes' => 5,
+];

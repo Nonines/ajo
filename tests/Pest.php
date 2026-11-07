@@ -1,12 +1,21 @@
 <?php
 
+use App\Jobs\DeliverPaymentNotice;
+use App\Jobs\ProcessPaymentWebhook;
+use App\Jobs\ScanPayments;
+use App\Jobs\VerifyDeposit;
+use App\Models\Deposit;
 use App\Models\Journal;
 use App\Models\LedgerAccount;
 use App\Models\User;
+use App\Support\Deposits;
 use App\Support\Ledger;
 use App\Support\Money;
 use App\Support\Wallets;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -67,4 +76,50 @@ function postWalletTestCredit(User $user, string $key = 'credit', int $kobo = 10
         ['account_id' => $wallet->id, 'amount' => new Money(-$kobo)],
         ['account_id' => LedgerAccount::where('code', 'house:cash_at_gateway')->sole()->id, 'amount' => new Money($kobo)],
     ], '2026-11-01', 'Test credit', $user->id);
+}
+
+function configurePaymentTest(): void
+{
+    config(['payments.secret_key' => 'sk_test_fixture', 'inertia.ssr.enabled' => false]);
+    Queue::fake([
+        ProcessPaymentWebhook::class, VerifyDeposit::class,
+        DeliverPaymentNotice::class, ScanPayments::class,
+    ]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.paystack.co/transaction/initialize' => fn ($request) => Http::response([
+            'status' => true, 'data' => ['reference' => $request['reference'], 'access_code' => 'test-access'],
+        ]),
+    ]);
+}
+
+function initializePaymentTest(User $user, int $kobo = 500000): Deposit
+{
+    configurePaymentTest();
+
+    return app(Deposits::class)->initialize($user, new Money($kobo), (string) Str::uuid());
+}
+
+/** @param array<string, mixed> $changes */
+function fakeVerifiedPayment(Deposit $deposit, array $changes = []): void
+{
+    config(['test_payments.'.$deposit->reference => array_replace([
+        'id' => $deposit->id + 1000, 'reference' => $deposit->reference, 'customer' => ['email' => $deposit->payer_email],
+        'domain' => 'test', 'currency' => 'NGN', 'status' => 'success', 'amount' => $deposit->requested_net + 10000,
+        'fees' => 10000, 'requested_amount' => $deposit->requested_net, 'paid_at' => '2026-11-04T10:00:00Z',
+    ], $changes)]);
+    Http::fake([
+        'api.paystack.co/transaction/verify/'.$deposit->reference => fn () => Http::response(['status' => true, 'data' => config('test_payments.'.$deposit->reference)]),
+    ]);
+}
+
+/** @param array<string, mixed> $changes */
+function fakeVerifiedRefund(Deposit $deposit, string $id, int $amount, array $changes = []): void
+{
+    Http::fake([
+        'api.paystack.co/refund/'.$id => Http::response(['status' => true, 'data' => array_replace([
+            'id' => $id, 'transaction' => $deposit->provider_id, 'domain' => 'test', 'currency' => 'NGN', 'status' => 'processed',
+            'amount' => $amount, 'deducted_amount' => $amount, 'fully_deducted' => true,
+        ], $changes)]),
+    ]);
 }

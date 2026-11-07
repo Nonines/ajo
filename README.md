@@ -62,11 +62,11 @@ Payment integrations and customer deposit, withdrawal, and savings flows remain 
 
 Run these commands against a migrated database with Redis/Valkey available:
 
-| Command | Purpose |
-| --- | --- |
-| `php artisan wallets:provision` | Idempotently create empty wallets for existing customers without inventing opening balances. |
-| `php artisan ledger:projections` | Compare stored balance projections with ledger entries; exit unsuccessfully if mismatches exist. |
-| `php artisan ledger:projections --rebuild` | Rebuild stored balances from ledger entries, then verify them. |
+| Command                                    | Purpose                                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `php artisan wallets:provision`            | Idempotently create empty wallets for existing customers without inventing opening balances.     |
+| `php artisan ledger:projections`           | Compare stored balance projections with ledger entries; exit unsuccessfully if mismatches exist. |
+| `php artisan ledger:projections --rebuild` | Rebuild stored balances from ledger entries, then verify them.                                   |
 
 ## Verification
 

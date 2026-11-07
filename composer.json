@@ -17,6 +17,7 @@
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "predis/predis": "^3.7",
+        "spatie/laravel-model-states": "^2.14",
         "spatie/laravel-permission": "^8.3"
     },
     "require-dev": {

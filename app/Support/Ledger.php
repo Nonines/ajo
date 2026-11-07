@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Contracts\Clock;
 use App\Models\Journal;
 use App\Models\LedgerAccount;
+use App\Models\PaymentReversal;
 use App\Models\User;
 use Brick\Math\BigInteger;
 use DomainException;
@@ -17,6 +18,48 @@ class Ledger
 
     /** @param list<array{account_id: int, amount: Money}> $entries */
     public function post(string $key, array $entries, string $effectiveDate, string $description, ?int $customerId = null, ?int $reversesId = null): Journal
+    {
+        return $this->write($key, $entries, $effectiveDate, $description, $customerId, $reversesId);
+    }
+
+    public function recoverDeposit(PaymentReversal $reversal): Journal
+    {
+        $effect = PaymentReversal::findOrFail($reversal->id);
+        $deposit = $effect->deposit;
+
+        return $this->transactions->run([$deposit->user_id], function () use ($effect, $deposit): Journal {
+            $effect->refresh();
+            if ($effect->journal_id !== null) {
+                return Journal::findOrFail($effect->journal_id);
+            }
+            $previous = PaymentReversal::where('deposit_id', $deposit->id)->whereNotNull('journal_id');
+            if ($deposit->recognition_journal_id === null || $effect->amount <= 0 || $effect->principal < 0 || $effect->fee < 0
+                || $effect->principal + $effect->fee !== $effect->amount
+                || $effect->principal > $deposit->requested_net - (clone $previous)->sum('principal')
+                || $effect->fee > $deposit->fee_amount - (clone $previous)->sum('fee')) {
+                throw new DomainException('Recovery must be bounded by verified original customer value and attributable fees.');
+            }
+            $wallet = LedgerAccount::where('code', 'customer:'.$deposit->user_id.':wallet')->sole();
+            $receivable = LedgerAccount::where('code', 'customer:'.$deposit->user_id.':reversal_receivable')->sole();
+            $available = $this->balance($wallet)->negate()->kobo;
+            $collected = min($available, $effect->amount);
+            $shortfall = $effect->amount - $collected;
+            $entries = [['account_id' => LedgerAccount::where('code', 'house:cash_at_gateway')->sole()->id, 'amount' => new Money(-$effect->amount)]];
+            if ($collected > 0) {
+                $entries[] = ['account_id' => $wallet->id, 'amount' => new Money($collected)];
+            }
+            if ($shortfall > 0) {
+                $entries[] = ['account_id' => $receivable->id, 'amount' => new Money($shortfall)];
+            }
+            $journal = $this->write('deposit-reversal:'.$effect->id, $entries, $this->clock->now()->setTimezone('Africa/Lagos')->toDateString(), 'Verified deposit reversal', $deposit->user_id, systemRecovery: true);
+            $effect->forceFill(['wallet_collected' => $collected, 'receivable_created' => $shortfall, 'journal_id' => $journal->id])->save();
+
+            return $journal;
+        });
+    }
+
+    /** @param list<array{account_id: int, amount: Money}> $entries */
+    private function write(string $key, array $entries, string $effectiveDate, string $description, ?int $customerId = null, ?int $reversesId = null, bool $systemRecovery = false): Journal
     {
         $date = explode('-', $effectiveDate);
         if (! preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $effectiveDate) || ! checkdate((int) ($date[1] ?? 0), (int) ($date[2] ?? 0), (int) $date[0])) {
@@ -42,7 +85,7 @@ class Ledger
         usort($canonical, static fn (array $left, array $right): int => ($left['account_id'] <=> $right['account_id']) ?: strcmp($left['amount'], $right['amount']));
         $fingerprint = hash('sha256', json_encode([$canonical, 'NGN', $effectiveDate, $description, $customerId, $reversesId], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run($customerId === null ? [] : [$customerId], function () use ($key, $canonical, $movements, $fingerprint, $effectiveDate, $description, $customerId, $reversesId): Journal {
+        return $this->transactions->run($customerId === null ? [] : [$customerId], function () use ($key, $canonical, $movements, $fingerprint, $effectiveDate, $description, $customerId, $reversesId, $systemRecovery): Journal {
             $existing = Journal::where('operation_key', $key)->first();
             if ($existing !== null) {
                 if (! hash_equals($existing->fingerprint, $fingerprint)) {
@@ -69,7 +112,7 @@ class Ledger
                     }
                     // Validate the positive entitlement as well as the signed liability.
                     $balance->negated()->toInt();
-                    if ($amount->isPositive() && (! $customer->is_active || ! $customer->hasVerifiedEmail())) {
+                    if ($amount->isPositive() && ! $systemRecovery && (! $customer->is_active || ! $customer->hasVerifiedEmail())) {
                         throw new DomainException('Only active verified customers can spend.');
                     }
                 }

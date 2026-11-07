@@ -5,6 +5,7 @@ use App\Models\Journal;
 use App\Models\LedgerAccount;
 use App\Models\LedgerEntry;
 use App\Models\User;
+use App\Support\FinancialTransaction;
 use App\Support\FrozenClock;
 use App\Support\Ledger;
 use App\Support\Money;
@@ -305,5 +306,31 @@ test('a linked reversal must cancel the original per-account totals', function (
     expect($cash->fresh()->balance->kobo)->toBe(100);
     expect($clearing->fresh()->balance->kobo)->toBe(-100);
     $this->assertDatabaseCount('journals', 1);
+    expect(app(Ledger::class)->projectionMismatches())->toBe([]);
+});
+
+test('financial orchestration can provision and post under an already held customer lock', function () {
+    $user = User::factory()->create();
+
+    $journal = app(FinancialTransaction::class)->run([$user->id], fn () => postWalletTestCredit($user));
+
+    expect($journal->entries)->toHaveCount(2);
+    expect(app(Wallets::class)->provision($user)->balance->kobo)->toBe(-10000);
+    expect(app(Ledger::class)->projectionMismatches())->toBe([]);
+});
+
+test('failed financial orchestration rolls back nested journals and releases its customer lock', function () {
+    $user = User::factory()->create();
+    $wallet = app(Wallets::class)->provision($user);
+
+    expect(fn () => app(FinancialTransaction::class)->run([$user->id], function () use ($user): void {
+        postWalletTestCredit($user);
+        throw new DomainException('Interrupted orchestration');
+    }))->toThrow(DomainException::class, 'Interrupted orchestration');
+
+    $this->assertDatabaseCount('journals', 0);
+    expect($wallet->fresh()->balance->kobo)->toBe(0);
+    postWalletTestCredit($user);
+    expect($wallet->fresh()->balance->kobo)->toBe(-10000);
     expect(app(Ledger::class)->projectionMismatches())->toBe([]);
 });
