@@ -7,6 +7,7 @@ use App\Models\SavingsProduct;
 use App\Models\SavingsProductVersion;
 use App\Models\Staff;
 use App\Models\User;
+use App\Support\Approvals;
 use App\Support\FrozenClock;
 use App\Support\Money;
 use App\Support\SavingsPlans;
@@ -53,7 +54,9 @@ test('admin publication appends versions while existing contracts retain their e
     $changed = savingsProductData();
     $changed['terms'][0]['annual_rate_bp'] = 1500;
 
-    $products->publish($admin, $changed, $product);
+    $approval = app(Approvals::class)->propose($admin, 'product.rate', $product, ['data' => $changed], 'Change offered rate');
+    expect($product->fresh()->current_version)->toBe(1);
+    app(Approvals::class)->decide(savingsAdmin(), $approval, true, 'Checked offered rate');
 
     expect($product->fresh()->current_version)->toBe(2);
     expect($version->fresh()->contract['terms'][0]['annual_rate_bp'])->toBe(1000);

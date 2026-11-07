@@ -96,7 +96,7 @@ test('independent workers serialize wallet spending replay and deletion', functi
             expect($second->getOutput())->toContain('DomainException:Insufficient wallet funds');
         }
         if ($scenario === 'delete-first') {
-            expect(User::find($user->id))->toBeNull();
+            expect(User::findOrFail($user->id)->is_active)->toBeFalse();
             expect(Journal::count())->toBe(0);
         } else {
             expect($wallet->fresh()->balance->kobo)->toBe(-2000);
