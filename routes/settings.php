@@ -5,25 +5,28 @@ use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth:web'])->group(function () {
-    Route::redirect('settings', '/settings/profile');
+Route::prefix('settings')->middleware('auth:web')->group(function () {
+    Route::redirect('/', '/settings/profile');
 
-    Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
-});
+    Route::prefix('profile')->name('profile.')->controller(ProfileController::class)->group(function () {
+        Route::get('/', 'edit')->name('edit');
+        Route::patch('/', 'update')->name('update');
+        Route::delete('/', 'destroy')->middleware('verified')->name('destroy');
+    });
 
-Route::middleware(['auth:web', 'verified'])->group(function () {
-    Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::middleware('verified')->group(function () {
+        Route::controller(SecurityController::class)->group(function () {
+            Route::get('security', 'edit')
+                ->middleware(RequirePassword::class)
+                ->name('security.edit');
 
-    Route::get('settings/security', [SecurityController::class, 'edit'])
-        ->middleware(RequirePassword::class)
-        ->name('security.edit');
+            Route::put('password', 'update')
+                ->middleware('throttle:6,1')
+                ->name('user-password.update');
+        });
 
-    Route::put('settings/password', [SecurityController::class, 'update'])
-        ->middleware('throttle:6,1')
-        ->name('user-password.update');
-
-    Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
+        Route::inertia('appearance', 'settings/Appearance')->name('appearance.edit');
+    });
 });
 
 Route::get('.well-known/passkey-endpoints', function () {
