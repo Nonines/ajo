@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Deposit;
 use App\Models\LedgerAccount;
+use App\Models\SavingsPlan;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -31,7 +32,8 @@ class Wallets
         $this->transactions->run([$user->id], function () use ($user): void {
             $customer = User::findOrFail($user->id);
             $accounts = LedgerAccount::where('user_id', $customer->id);
-            $hasHistory = (clone $accounts)->whereHas('entries')->exists() || Deposit::where('user_id', $customer->id)->exists();
+            $hasHistory = (clone $accounts)->whereHas('entries')->exists() || Deposit::where('user_id', $customer->id)->exists()
+                || SavingsPlan::where('user_id', $customer->id)->exists();
             if ($hasHistory) {
                 $customer->forceFill(['is_active' => false, 'remember_token' => null])->save();
                 $customer->passkeys()->delete();

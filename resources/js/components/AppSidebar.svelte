@@ -16,6 +16,7 @@
     } from '@/components/ui/sidebar';
     import { toUrl } from '@/lib/utils';
     import { dashboard } from '@/routes';
+    import { index as savings } from '@/routes/savings';
     import type { NavItem } from '@/types';
 
     let {
@@ -25,6 +26,11 @@
     } = $props();
 
     const mainNavItems: NavItem[] = [
+        {
+            title: 'Savings',
+            href: savings(),
+            icon: LayoutGrid,
+        },
         {
             title: 'Dashboard',
             href: dashboard(),

@@ -10,6 +10,7 @@
     import { formatMoney } from '@/lib/money';
     import { show } from '@/routes/deposits';
     import { update } from '@/routes/notifications';
+    import { show as savingsShow } from '@/routes/savings';
 
     type Notice = { id: string; readAt: string | null; createdAt: string; data: Record<string, string> };
     let { notifications }: { notifications: { data: Notice[]; prev_page_url: string | null; next_page_url: string | null } } = $props();
@@ -21,9 +22,15 @@
     {#if notifications.data.length === 0}<p>No notifications yet.</p>{/if}
     {#each notifications.data as notice (notice.id)}
         <section class="grid gap-3 rounded-md border-2 border-foreground bg-card p-6">
+            {#if notice.data.type === 'savings_maturity'}
+                <h2 class="text-xl font-bold">Your savings matured</h2>
+                <p>Principal: {formatMoney(notice.data.principal)}. Gross interest: {formatMoney(notice.data.gross_interest)}. Withholding: {formatMoney(notice.data.withholding)}. Net interest: {formatMoney(notice.data.net_interest)}. Applied to recovery: {formatMoney(notice.data.debt_repayment)}. Paid to wallet: {formatMoney(notice.data.wallet_credit)}. Remaining recovery balance: {formatMoney(notice.data.remaining_debt)}.</p>
+                <Link href={savingsShow(Number(notice.data.plan_id))} class="underline">View maturity statement</Link>
+            {:else}
             <h2 class="text-xl font-bold">Payment {notice.data.type}</h2>
             <p>Net value: {formatMoney(notice.data.net)}. Applied to debt: {formatMoney(notice.data.debt_repayment)}. Remaining debt: {formatMoney(notice.data.remaining_debt)}.</p>
             <Link href={show(notice.data.reference)} class="break-all underline">View {notice.data.reference}</Link>
+            {/if}
             {#if !notice.readAt}<Button variant="outline" onclick={() => router.patch(update(notice.id))}>Mark as read</Button>{:else}<p class="text-sm text-muted-foreground">Read</p>{/if}
         </section>
     {/each}

@@ -7,10 +7,12 @@ use App\Jobs\VerifyDeposit;
 use App\Models\Deposit;
 use App\Models\Journal;
 use App\Models\LedgerAccount;
+use App\Models\SavingsPlan;
 use App\Models\User;
 use App\Support\Deposits;
 use App\Support\Ledger;
 use App\Support\Money;
+use App\Support\SavingsPlans;
 use App\Support\Wallets;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -122,4 +124,16 @@ function fakeVerifiedRefund(Deposit $deposit, string $id, int $amount, array $ch
             'amount' => $amount, 'deducted_amount' => $amount, 'fully_deducted' => true,
         ], $changes)]),
     ]);
+}
+
+function fundedAccrualPlan(int $principal = 1000000, int $rate = 1000): SavingsPlan
+{
+    $plan = SavingsPlan::factory()->create(['contract' => ['name' => 'Accrual test', 'disclosure' => 'Fixture',
+        'minimum' => '1', 'maximum' => (string) PHP_INT_MAX, 'withholding_bp' => 1000, 'terms' => [['days' => 30, 'annual_rate_bp' => $rate]],
+        'interest' => 'simple', 'day_count' => 'Actual/365', 'lock' => 'until_maturity', 'fee' => '0',
+        'principal' => (string) $principal, 'days' => 30, 'annual_rate_bp' => $rate]]);
+    postWalletTestCredit($plan->user, key: 'savings-credit:'.$plan->id, kobo: $principal);
+    app(SavingsPlans::class)->accept($plan->user, $plan);
+
+    return app(SavingsPlans::class)->fund($plan->user, $plan);
 }
