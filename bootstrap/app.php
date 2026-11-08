@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Provider callbacks use their own signature or token checks because they carry no browser CSRF token.
         $middleware->preventRequestForgery(except: ['payments/paystack/webhook', 'payments/paystack/approval']);
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 

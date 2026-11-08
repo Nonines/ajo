@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
+ * Stores encrypted bank details whose identity and origin are protected by database triggers.
+ *
  * @property array<string, mixed> $details
  */
 #[Hidden(['details'])]

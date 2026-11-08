@@ -6,6 +6,9 @@ use App\Support\PaymentMonitoring;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
+/**
+ * Resumes checkpointed provider discovery on the webhooks queue.
+ */
 class ScanPayments implements ShouldQueue
 {
     use Queueable;

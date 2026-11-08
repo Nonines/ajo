@@ -5,7 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 
-/** @property array<string, mixed> $evidence */
+/**
+ * Keeps simulated provider evidence separate from the local financial subject it exercises.
+ *
+ * @property array<string, mixed> $evidence
+ */
 #[Hidden(['evidence'])]
 class PaymentSimulation extends Model
 {

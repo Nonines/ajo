@@ -6,6 +6,9 @@ use App\Support\PaymentInbox;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
+/**
+ * Processes a durable inbox receipt on the webhooks queue after its transaction commits.
+ */
 class ProcessPaymentWebhook implements ShouldQueue
 {
     use Queueable;

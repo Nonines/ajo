@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * Stores a transactional payment notice snapshot and independent email delivery progress.
+ *
  * @property string $id
  * @property int $user_id
  * @property int|null $deposit_id

@@ -7,6 +7,9 @@ use App\Models\PaymentSimulation;
 use App\Models\WithdrawalRequest;
 use DomainException;
 
+/**
+ * Parses local simulation evidence through the ordinary financial verification value objects.
+ */
 class SimulatedGateway
 {
     public function verify(string $reference): VerifiedPayment
@@ -16,7 +19,11 @@ class SimulatedGateway
         return VerifiedPayment::from($simulation->evidence);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Exercises the server-approval checks for a simulated payout before returning its reference.
+     *
+     * @return array<string, mixed>
+     */
     public function transfer(WithdrawalRequest $withdrawal): array
     {
         $this->simulation($withdrawal->reference, WithdrawalRequest::class);
@@ -45,6 +52,9 @@ class SimulatedGateway
             'amount' => $amount, 'deducted_amount' => $amount, 'fully_deducted' => true, 'status' => 'processed']);
     }
 
+    /**
+     * Requires an enabled environment and a subject whose persisted origin and reference match.
+     */
     private function simulation(string $reference, string $class): PaymentSimulation
     {
         if (! app()->environment(['local', 'testing']) || config('withdrawals.simulation_enabled') !== true) {

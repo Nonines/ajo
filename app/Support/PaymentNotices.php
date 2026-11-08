@@ -18,10 +18,16 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Throwable;
 
+/**
+ * Records financial notice intent transactionally and delivers database and email notifications separately.
+ */
 class PaymentNotices
 {
     public function __construct(private Clock $clock, private Ledger $ledger) {}
 
+    /**
+     * Snapshots deposit notice data once per operation key inside the financial transaction.
+     */
     public function record(Deposit $deposit, string $type, string $operationKey, ?PaymentReversal $reversal = null): void
     {
         if (DB::transactionLevel() === 0) {
@@ -52,6 +58,9 @@ class PaymentNotices
         });
     }
 
+    /**
+     * Deduplicates the database notice and retries unsent mail; a crash after sending can repeat email.
+     */
     public function deliver(string $id): void
     {
         $lock = Cache::lock('payment-notice:'.$id, config('payments.claim_seconds'));
@@ -79,6 +88,9 @@ class PaymentNotices
         }
     }
 
+    /**
+     * Records a notice for each withdrawal state and fee revision inside its financial transaction.
+     */
     public function withdrawal(WithdrawalRequest $withdrawal): void
     {
         if (DB::transactionLevel() === 0) {

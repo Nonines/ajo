@@ -15,10 +15,16 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
+/**
+ * Durably receives authenticated observations and routes them to independent financial verification.
+ */
 class PaymentInbox
 {
     public function __construct(private Clock $clock, private Deposits $deposits, private DepositRecovery $recovery) {}
 
+    /**
+     * Authenticates the raw webhook body using the configured signature mode before persisting it.
+     */
     public function receive(string $raw, ?string $signature): WebhookEvent
     {
         $mode = config('payments.webhook_mode');
@@ -59,6 +65,9 @@ class PaymentInbox
         return $this->persist($raw);
     }
 
+    /**
+     * Accepts separately signed simulated events only in explicitly enabled local or test environments.
+     */
     public function receiveSimulated(string $raw, string $signature): WebhookEvent
     {
         $secret = config('withdrawals.simulation_signing_key');
@@ -70,7 +79,11 @@ class PaymentInbox
         return $this->persist($raw, 'simulated');
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Persists provider-list observations for the same verification path used by webhook receipts.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function observe(string $resource, array $data): WebhookEvent
     {
         if (! in_array($resource, ['transaction', 'refund', 'dispute', 'transfer'], true)) {
@@ -80,6 +93,9 @@ class PaymentInbox
         return $this->persist(json_encode(['event' => 'verified-list.'.$resource, 'data' => $data], JSON_THROW_ON_ERROR));
     }
 
+    /**
+     * Deduplicates by origin and raw payload, retaining the receipt even if queue dispatch fails.
+     */
     private function persist(string $raw, string $origin = 'real'): WebhookEvent
     {
         $event = DB::transaction(function () use ($raw, $origin): WebhookEvent {
@@ -102,6 +118,9 @@ class PaymentInbox
         return $event;
     }
 
+    /**
+     * Claims and routes an observation to verification; receipt completion can precede financial resolution.
+     */
     public function process(int $id): void
     {
         $token = (string) Str::uuid();
@@ -167,6 +186,9 @@ class PaymentInbox
         }
     }
 
+    /**
+     * Reschedules only the claim owned by this worker so stale workers cannot release newer claims.
+     */
     private function retry(int $id, string $token, int $seconds): void
     {
         WebhookEvent::whereKey($id)->where('claim_token', $token)->update(['claim_token' => null, 'claimed_at' => null, 'next_attempt_at' => $this->clock->now()->addSeconds(max(60, $seconds))]);

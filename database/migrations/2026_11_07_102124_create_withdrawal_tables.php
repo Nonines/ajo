@@ -74,6 +74,7 @@ return new class extends Migration
             $table->foreignId('deposit_id')->nullable()->change();
             $table->foreignId('withdrawal_request_id')->nullable()->constrained()->restrictOnDelete();
         });
+        // Provider identities are unique within each adapter origin, allowing isolated simulation evidence.
         Schema::table('deposits', function (Blueprint $table): void {
             $table->string('origin')->default('real');
             $table->dropUnique(['provider_id']);

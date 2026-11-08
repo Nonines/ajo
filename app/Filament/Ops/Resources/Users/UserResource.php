@@ -19,6 +19,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Displays customer balances and proposes recovery or journal changes for independent approval.
+ */
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
@@ -87,6 +90,9 @@ class UserResource extends Resource
         ])->recordActions($actions);
     }
 
+    /**
+     * Displays ledger totals and optionally normalizes a credit-negative wallet liability.
+     */
     private static function balance(User $user, string $suffix, bool $normalize = false): string
     {
         $account = LedgerAccount::where('code', 'customer:'.$user->id.':'.$suffix)->first();

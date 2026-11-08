@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 
 /**
+ * Tracks unresolved provider evidence and resumable investigation progress by a stable case key.
+ *
  * @property int $id
  * @property int|null $deposit_id
  * @property int|null $webhook_event_id
@@ -24,6 +26,9 @@ use Illuminate\Support\Facades\DB;
  */
 class PaymentException extends Model
 {
+    /**
+     * Creates or reopens the stable case for a code and resource association without duplicating it.
+     */
     public static function record(string $code, string $message, CarbonImmutable $now, ?int $depositId = null, ?int $eventId = null, ?string $resourceType = null, ?string $resourceId = null, bool $providerOpen = false): self
     {
         return DB::transaction(function () use ($code, $message, $now, $depositId, $eventId, $resourceType, $resourceId, $providerOpen): self {

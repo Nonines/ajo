@@ -7,6 +7,9 @@ use App\Support\Withdrawals;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
+/**
+ * Reconciles a submitted payout on the payouts queue before considering an eligible retry.
+ */
 class VerifyWithdrawal implements ShouldQueue
 {
     use Queueable;

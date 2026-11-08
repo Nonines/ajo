@@ -9,6 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+// Redispatch persisted due work so queue outages do not discard financial processing intent.
 Schedule::command('payments:recover')->everyMinute()->withoutOverlapping(2)->onOneServer();
 Schedule::command('withdrawals:recover')->everyMinute()->withoutOverlapping(2)->onOneServer();
 Schedule::command('savings:process')->dailyAt('00:05')->withoutOverlapping(2)->onOneServer();

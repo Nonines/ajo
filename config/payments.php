@@ -4,6 +4,7 @@ return [
     'secret_key' => env('PAYSTACK_SECRET_KEY'),
     'webhook_mode' => env('PAYSTACK_WEBHOOK_MODE', 'legacy'),
     'webhook_signing_secret' => env('PAYSTACK_WEBHOOK_SIGNING_SECRET'),
+    // Deposit limits are net customer value in integer kobo, excluding provider fees.
     'minimum_net' => 100000,
     'maximum_net' => 10000000000,
     'http_timeout' => 15,
@@ -14,6 +15,7 @@ return [
     'pages_per_run' => 5,
     'scan_seconds' => 30,
     'scan_overlap_minutes' => 1440,
+    // Expired inbox claims become eligible for another worker; claim tokens guard against stale completion.
     'claim_seconds' => 120,
     'inbox_overdue_minutes' => 5,
     'initial_delay_minutes' => 15,

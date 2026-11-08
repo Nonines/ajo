@@ -19,6 +19,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
+/**
+ * Applies sensitive financial changes through expiring proposals and distinct staff decisions.
+ */
 class Approvals
 {
     private const array PERMISSIONS = [
@@ -35,6 +38,9 @@ class Approvals
 
     public function __construct(private FinancialTransaction $transactions, private Clock $clock, private AuditTrail $audit) {}
 
+    /**
+     * Reloads active staff and checks current permissions rather than trusting a stale caller model.
+     */
     public function authorize(Staff $staff, string $permission): Staff
     {
         $current = Staff::findOrFail($staff->id);
@@ -45,7 +51,11 @@ class Approvals
         return $current;
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * Snapshots action-specific evidence and expiry under the affected customer locks.
+     *
+     * @param  array<string, mixed>  $payload
+     */
     public function propose(Staff $staff, string $action, Model $subject, array $payload, string $reason): ApprovalRequest
     {
         $permissions = self::PERMISSIONS[$action] ?? throw new DomainException('Unsupported approval action.');
@@ -106,6 +116,9 @@ class Approvals
         });
     }
 
+    /**
+     * Rechecks both staff permissions and applies an accepted proposal in the decision transaction.
+     */
     public function decide(Staff $staff, ApprovalRequest $approval, bool $accept, string $reason): ApprovalRequest
     {
         $approval = ApprovalRequest::findOrFail($approval->id);
@@ -163,6 +176,9 @@ class Approvals
         }
     }
 
+    /**
+     * Expires pending proposals and releases eligible unsubmitted withdrawal reservations.
+     */
     public function expire(ApprovalRequest $approval): bool
     {
         if ($approval->state !== 'pending' || $approval->expires_at->greaterThan($this->clock->now())) {
@@ -182,7 +198,11 @@ class Approvals
         return true;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Checks proposal evidence against current state before applying the authorized financial change.
+     *
+     * @return array<string, mixed>
+     */
     private function apply(ApprovalRequest $approval, Staff $checker, Model $subject): array
     {
         if ($subject instanceof WithdrawalRequest) {
@@ -269,6 +289,9 @@ class Approvals
         return ['journal_id' => $journal->id];
     }
 
+    /**
+     * Resolves only supported approval subject classes from stored proposal evidence.
+     */
     private function subject(ApprovalRequest $approval): Model
     {
         $class = $approval->subject_type;
@@ -279,7 +302,11 @@ class Approvals
         return $class::findOrFail($approval->subject_id);
     }
 
-    /** @return list<int> */
+    /**
+     * Identifies the customer locks required by an approval subject.
+     *
+     * @return list<int>
+     */
     private function customers(Model $subject): array
     {
         return $subject instanceof User ? [$subject->id] : ($subject instanceof SavingsPlan || $subject instanceof WithdrawalRequest ? [$subject->user_id] : []);

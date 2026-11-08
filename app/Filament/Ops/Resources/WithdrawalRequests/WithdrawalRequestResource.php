@@ -15,6 +15,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Routes single-review and maker-checker actions through the withdrawal approval services.
+ */
 class WithdrawalRequestResource extends Resource
 {
     protected static ?string $model = WithdrawalRequest::class;

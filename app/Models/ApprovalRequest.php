@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * Retains an immutable maker proposal alongside the distinct checker decision and application evidence.
+ *
  * @property array<string, mixed> $payload
  * @property array<string, mixed>|null $evidence
  * @property CarbonImmutable $expires_at

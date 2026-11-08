@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\ModelStates\HasStates;
 
 /**
+ * Retains checkout identity separately from verified recognition, fees, and recovery allocations.
+ *
  * @property int $id
  * @property int $user_id
  * @property string $request_key

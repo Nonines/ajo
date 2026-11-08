@@ -8,8 +8,14 @@ use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Connects validated customer destination requests to provider-backed account resolution.
+ */
 class SavedDestinationController extends Controller
 {
+    /**
+     * Saves a verified bank destination and exposes domain failures beside the account-number field.
+     */
     public function store(StoreDestinationRequest $request, Destinations $destinations): RedirectResponse
     {
         try {

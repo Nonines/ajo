@@ -18,6 +18,9 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Throwable;
 
+/**
+ * Expires review work and queues dispatch or verification according to saved submission evidence.
+ */
 #[Signature('withdrawals:recover')]
 #[Description('Expire withdrawal reviews and recover approved payouts and pending verification')]
 class RecoverWithdrawals extends Command

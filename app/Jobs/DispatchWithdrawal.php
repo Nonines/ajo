@@ -7,6 +7,9 @@ use App\Support\Withdrawals;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
+/**
+ * Dispatches a committed reservation on the payouts queue through the submission-intent checks.
+ */
 class DispatchWithdrawal implements ShouldQueue
 {
     use Queueable;

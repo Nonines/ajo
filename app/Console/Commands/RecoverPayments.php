@@ -6,6 +6,9 @@ use App\Support\PaymentMonitoring;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Rediscovers durable payment work without assuming that queue delivery succeeded.
+ */
 class RecoverPayments extends Command
 {
     protected $signature = 'payments:recover';

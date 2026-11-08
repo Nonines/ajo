@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Restricts financial notification listing and read updates to the active customer.
+ */
 class NotificationController extends Controller
 {
     public function index(Request $request): Response
@@ -18,6 +21,9 @@ class NotificationController extends Controller
         ])]);
     }
 
+    /**
+     * Finds the notification through its owner before marking it read.
+     */
     public function update(Request $request, string $notification): RedirectResponse
     {
         abort_unless($request->user('web')->is_active, 403);

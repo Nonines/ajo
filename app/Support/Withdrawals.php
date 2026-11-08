@@ -26,11 +26,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
+/**
+ * Reserves wallet funds and reconciles payouts against immutable approval and provider evidence.
+ */
 class Withdrawals
 {
     public function __construct(private FinancialTransaction $transactions, private Ledger $ledger,
         private Clock $clock, private PaymentGateway $gateway, private AuditTrail $audit) {}
 
+    /**
+     * Selects the configured whole-kobo processing fee for a principal amount.
+     */
     public function quote(Money $amount): Money
     {
         if ($amount->kobo <= 0) {
@@ -49,6 +55,9 @@ class Withdrawals
         throw new DomainException('A withdrawal fee quote is unavailable.');
     }
 
+    /**
+     * Snapshots destination, fee, and review threshold while reserving principal and fee once per request key.
+     */
     public function request(User $user, SavedDestination $destination, Money $principal, string $requestKey, ?Staff $simulationActor = null): WithdrawalRequest
     {
         if (! Str::isUuid($requestKey)) {
@@ -106,6 +115,9 @@ class Withdrawals
         });
     }
 
+    /**
+     * Allows single-staff approval at or below the reserved-value threshold, or rejection while awaiting review.
+     */
     public function review(Staff $staff, WithdrawalRequest $withdrawal, bool $approve, string $reason): WithdrawalRequest
     {
         return $this->transactions->run([$withdrawal->user_id], function () use ($staff, $withdrawal, $approve, $reason): WithdrawalRequest {
@@ -134,11 +146,17 @@ class Withdrawals
         });
     }
 
+    /**
+     * Compares total reserved value with the snapshotted threshold for two-staff approval.
+     */
     public function requiresChecker(WithdrawalRequest $withdrawal): bool
     {
         return BigInteger::of($withdrawal->principal)->plus($withdrawal->reserved_fee)->isGreaterThan($withdrawal->threshold);
     }
 
+    /**
+     * Rechecks reservation and staff evidence before queuing payout dispatch after commit.
+     */
     public function approve(WithdrawalRequest $withdrawal, Staff $staff, ?ApprovalRequest $approval = null): void
     {
         $withdrawal = WithdrawalRequest::findOrFail($withdrawal->id);
@@ -178,6 +196,9 @@ class Withdrawals
         });
     }
 
+    /**
+     * Releases an owned request only before final staff approval.
+     */
     public function cancel(User $user, WithdrawalRequest $withdrawal): void
     {
         $this->transactions->run([$user->id], function () use ($user, $withdrawal): void {
@@ -192,6 +213,9 @@ class Withdrawals
         });
     }
 
+    /**
+     * Releases requests whose review window elapsed before approval.
+     */
     public function expire(WithdrawalRequest $withdrawal): bool
     {
         if (in_array((string) $withdrawal->state, ['requested', 'under_review'], true)
@@ -204,6 +228,9 @@ class Withdrawals
         return false;
     }
 
+    /**
+     * Returns an unsubmitted reservation through debt-first credits and cancels pending proposals.
+     */
     public function release(WithdrawalRequest $withdrawal, string $state, string $reason): void
     {
         $this->transactions->run([$withdrawal->user_id], function () use ($withdrawal, $state, $reason): void {
@@ -232,6 +259,9 @@ class Withdrawals
         });
     }
 
+    /**
+     * Commits submission intent before contacting the gateway outside the customer lock.
+     */
     public function dispatch(WithdrawalRequest $withdrawal): void
     {
         $send = $this->transactions->run([$withdrawal->user_id], function () use ($withdrawal): bool {
@@ -269,7 +299,11 @@ class Withdrawals
         }
     }
 
-    /** @param array<string, mixed> $details */
+    /**
+     * Approves only a matching submitted reservation with the expected origin, amount, and recipient.
+     *
+     * @param  array<string, mixed>  $details
+     */
     public function providerApproval(array $details, string $origin = 'real'): bool
     {
         $reference = $details['reference'] ?? null;
@@ -300,6 +334,9 @@ class Withdrawals
         });
     }
 
+    /**
+     * Matches provider evidence before posting principal outcomes and reconciling verified fees.
+     */
     public function verify(WithdrawalRequest $withdrawal): void
     {
         $verified = $this->gateway->verifyTransfer($withdrawal->reference);
@@ -372,6 +409,9 @@ class Withdrawals
         });
     }
 
+    /**
+     * Verifies first, retrying an eligible inconclusive submission with its original reference.
+     */
     public function reconcile(WithdrawalRequest $withdrawal): void
     {
         try {
@@ -399,6 +439,9 @@ class Withdrawals
         }
     }
 
+    /**
+     * Requires an active, verified customer without outstanding recovery debt.
+     */
     private function eligible(int $customerId): void
     {
         $customer = User::findOrFail($customerId);

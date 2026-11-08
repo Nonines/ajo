@@ -32,6 +32,9 @@ class StoreWithdrawalRequest extends FormRequest
                 }]];
     }
 
+    /**
+     * Converts the validated decimal-naira input to integer kobo without floating-point arithmetic.
+     */
     public function money(): Money
     {
         [$naira, $fraction] = array_pad(explode('.', $this->string('amount')->toString(), 2), 2, '');

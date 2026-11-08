@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
+ * Retains verified refund allocation and its linked recovery journal for replay protection.
+ *
  * @property int $id
  * @property int $deposit_id
  * @property string $provider_refund_id

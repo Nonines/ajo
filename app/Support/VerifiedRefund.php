@@ -4,12 +4,19 @@ namespace App\Support;
 
 use DomainException;
 
+/**
+ * Carries parsed refund evidence, including whether the actual deduction amount is known.
+ */
 final readonly class VerifiedRefund
 {
     /** @param array<string, mixed> $evidence */
     public function __construct(public string $id, public string $transactionId, public ?string $disputeId, public string $domain, public string $currency, public string $status, public int $amount, public ?int $deducted, public bool $fullyDeducted, public array $evidence) {}
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Parses refund identity and amounts while retaining the original evidence for recovery checks.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public static function from(array $data): self
     {
         $transaction = $data['transaction'] ?? null;

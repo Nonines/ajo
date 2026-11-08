@@ -6,6 +6,9 @@ use App\Support\PaymentNotices;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
+/**
+ * Delivers a durable payment notice after commit; scheduler recovery handles unfinished intent.
+ */
 class DeliverPaymentNotice implements ShouldQueue
 {
     use Queueable;

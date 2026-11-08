@@ -16,10 +16,16 @@ use App\Models\WebhookEvent;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
 
+/**
+ * Rediscovers durable payment work and checkpoints bounded provider scans across scheduler runs.
+ */
 class PaymentMonitoring
 {
     public function __construct(private Clock $clock, private PaymentGateway $gateway, private PaymentInbox $inbox) {}
 
+    /**
+     * Queues due receipts, payment checks, notices, and scans while surfacing overdue work.
+     */
     public function recover(): void
     {
         $now = $this->clock->now();
@@ -66,6 +72,9 @@ class PaymentMonitoring
         }
     }
 
+    /**
+     * Persists observations page by page within a fixed window and retains progress when the budget ends.
+     */
     public function scan(string $resource): void
     {
         if (! in_array($resource, ['transaction', 'refund', 'dispute'], true)) {

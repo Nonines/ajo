@@ -12,10 +12,16 @@ use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Reconciles refunds and disputes without inferring recoverable value from status alone.
+ */
 class DepositRecovery
 {
     public function __construct(private PaymentGateway $gateway, private FinancialTransaction $transactions, private Ledger $ledger, private Clock $clock, private PaymentNotices $notices) {}
 
+    /**
+     * Verifies refund deductions and caps recovery at remaining recognized principal and attributable fees.
+     */
     public function refund(string $id, string $origin = 'real'): void
     {
         $refund = $this->gateway->refund($id, $origin);
@@ -97,6 +103,9 @@ class DepositRecovery
         });
     }
 
+    /**
+     * Claims a dispute reconciliation pass so concurrent workers do not scan it together.
+     */
     public function dispute(string $id): void
     {
         $lock = Cache::lock('payment-dispute:'.$id, config('payments.claim_seconds'));
@@ -110,6 +119,9 @@ class DepositRecovery
         }
     }
 
+    /**
+     * Tracks the dispute deadline and reconciles refund evidence before closing the local case.
+     */
     private function reconcileDispute(string $id): void
     {
         $data = $this->gateway->dispute($id);
@@ -140,6 +152,9 @@ class DepositRecovery
         }
     }
 
+    /**
+     * Resumes a bounded refund scan, retaining the page and item offset until the window completes.
+     */
     private function scanDisputeRefunds(PaymentException $case, string $transactionId): bool
     {
         if ($case->refund_scan_to === null) {

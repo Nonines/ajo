@@ -6,7 +6,11 @@ use App\Models\Deposit;
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
 
-/** @extends State<Deposit> */
+/**
+ * Defines the permitted deposit lifecycle transitions used by the domain services.
+ *
+ * @extends State<Deposit>
+ */
 abstract class DepositState extends State
 {
     public static function config(): StateConfig

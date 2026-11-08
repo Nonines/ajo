@@ -25,6 +25,7 @@
         withdrawals: { data: Withdrawal[]; prev_page_url: string | null; next_page_url: string | null };
     } = $props();
     let amount = $state('');
+    // Parse decimal naira into BigInt kobo for the estimate; the server validates and snapshots the actual fee.
     const kobo = $derived.by(() => {
         if (!/^(0|[1-9][0-9]*)(\.[0-9]{1,2})?$/.test(amount)) return null;
         const [whole, fraction = ''] = amount.split('.');

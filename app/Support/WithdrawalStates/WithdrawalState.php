@@ -6,7 +6,11 @@ use App\Models\WithdrawalRequest;
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
 
-/** @extends State<WithdrawalRequest> */
+/**
+ * Defines the permitted withdrawal lifecycle transitions used by the domain services.
+ *
+ * @extends State<WithdrawalRequest>
+ */
 abstract class WithdrawalState extends State
 {
     public static function config(): StateConfig

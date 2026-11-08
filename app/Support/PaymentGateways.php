@@ -5,6 +5,9 @@ namespace App\Support;
 use App\Models\Deposit;
 use App\Models\WithdrawalRequest;
 
+/**
+ * Chooses real or simulated verification from persisted origin rather than incoming event claims.
+ */
 class PaymentGateways extends PaystackGateway
 {
     public function initialize(Deposit $deposit): string

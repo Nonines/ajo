@@ -15,6 +15,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Exposes proposal decisions through Approvals while disabling direct CRUD changes.
+ */
 class ApprovalRequestResource extends Resource
 {
     protected static ?string $model = ApprovalRequest::class;

@@ -14,6 +14,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Exposes outcome scenarios only to permitted administrators in enabled local or test environments.
+ */
 class PaymentSimulationResource extends Resource
 {
     protected static ?string $model = PaymentSimulation::class;

@@ -12,10 +12,16 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 
+/**
+ * Adapts Paystack test-mode requests into validated payment, refund, and transfer evidence.
+ */
 class PaystackGateway implements PaymentGateway
 {
     public function __construct(private Clock $clock) {}
 
+    /**
+     * Requests checkout for the saved reference and returns its matching access code.
+     */
     public function initialize(Deposit $deposit): string
     {
         $data = $this->request('post', 'transaction/initialize', [
@@ -29,6 +35,9 @@ class PaystackGateway implements PaymentGateway
         return $data['access_code'];
     }
 
+    /**
+     * Fetches and parses transaction evidence for a validated local reference.
+     */
     public function verify(string $reference): VerifiedPayment
     {
         if (! preg_match('/^[A-Za-z0-9.=-]{1,255}$/D', $reference)) {
@@ -38,6 +47,9 @@ class PaystackGateway implements PaymentGateway
         return VerifiedPayment::from($this->request('get', 'transaction/verify/'.rawurlencode($reference)));
     }
 
+    /**
+     * Fetches refund evidence from the real adapter and checks the returned provider identity.
+     */
     public function refund(string $id, string $origin = 'real'): VerifiedRefund
     {
         if ($origin !== 'real') {
@@ -56,6 +68,9 @@ class PaystackGateway implements PaymentGateway
         return $this->request('get', 'bank/resolve', ['account_number' => $accountNumber, 'bank_code' => $bankCode]);
     }
 
+    /**
+     * Caches a complete bounded cursor scan of active Nigerian NGN bank destinations.
+     */
     public function banks(): array
     {
         return Cache::remember('payments:banks:NGN', 3600, function (): array {
@@ -104,6 +119,9 @@ class PaystackGateway implements PaymentGateway
             'recipient' => $withdrawal->destination['recipient_code'], 'reason' => 'Ajo wallet withdrawal']);
     }
 
+    /**
+     * Cross-checks transfer verification with fetched transfer details before accepting fee evidence.
+     */
     public function verifyTransfer(string $reference): VerifiedTransfer
     {
         if (! preg_match('/^[a-z0-9_-]{16,50}$/D', $reference)) {
@@ -121,7 +139,11 @@ class PaystackGateway implements PaymentGateway
         return VerifiedTransfer::from($fetched);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Fetches a dispute and checks that the returned identity matches the requested resource.
+     *
+     * @return array<string, mixed>
+     */
     public function dispute(string $id): array
     {
         $data = $this->request('get', 'dispute/'.VerifiedPayment::id($id));
@@ -132,7 +154,10 @@ class PaystackGateway implements PaymentGateway
         return $data;
     }
 
-    /** @param array<string, int|string> $query
+    /**
+     * Returns a validated page of supported provider resources for durable discovery.
+     *
+     * @param  array<string, int|string>  $query
      * @return list<array<string, mixed>>
      */
     public function list(string $resource, array $query): array
@@ -153,7 +178,10 @@ class PaystackGateway implements PaymentGateway
         return $data;
     }
 
-    /** @param array<string, int|string> $parameters
+    /**
+     * Enforces test credentials, endpoint request budgets, and provider backoff before decoding evidence.
+     *
+     * @param  array<string, int|string>  $parameters
      * @return array<array-key, mixed>
      */
     private function request(string $method, string $path, array $parameters = [], bool $includeMetadata = false): array

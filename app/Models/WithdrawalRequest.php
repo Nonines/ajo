@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\ModelStates\HasStates;
 
 /**
+ * Retains the payout reservation snapshot and separately verified principal and fee evidence.
+ *
  * @property WithdrawalState $state
  * @property array<string, mixed> $destination
  * @property array<string, mixed>|null $verification

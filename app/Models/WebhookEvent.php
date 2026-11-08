@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * Retains raw observations with claim ownership and retry state for durable inbox processing.
+ *
  * @property int $id
  * @property string $payload
  * @property string|null $claim_token

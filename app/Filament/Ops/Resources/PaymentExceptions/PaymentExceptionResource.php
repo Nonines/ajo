@@ -17,6 +17,9 @@ use Filament\Tables\Table;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
+/**
+ * Retries evidence verification rather than allowing staff to assign financial outcomes directly.
+ */
 class PaymentExceptionResource extends Resource
 {
     protected static ?string $model = PaymentException::class;

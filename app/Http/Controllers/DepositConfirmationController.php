@@ -8,8 +8,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
+/**
+ * Treats customer callbacks as requests for verification rather than proof of payment.
+ */
 class DepositConfirmationController extends Controller
 {
+    /**
+     * Queues verification for an owned deposit while retaining scheduler recovery if dispatch fails.
+     */
     public function store(Request $request, Deposit $deposit): RedirectResponse
     {
         abort_unless($request->user('web')->is_active, 403);
@@ -23,6 +29,9 @@ class DepositConfirmationController extends Controller
         return to_route('deposits.show', $deposit->reference);
     }
 
+    /**
+     * Resolves the callback reference within the signed-in customer's deposits before requesting verification.
+     */
     public function show(Request $request): RedirectResponse
     {
         $reference = $request->query('reference');

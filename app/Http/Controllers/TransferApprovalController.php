@@ -6,8 +6,14 @@ use App\Support\Withdrawals;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
+/**
+ * Authenticates provider server-approval callbacks before checking the local payout reservation.
+ */
 class TransferApprovalController extends Controller
 {
+    /**
+     * Checks the shared token and body limit, then accepts only matching payout approval details.
+     */
     public function __invoke(Request $request, Withdrawals $withdrawals): Response
     {
         $token = config('withdrawals.approval_token');

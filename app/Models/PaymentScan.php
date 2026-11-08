@@ -6,6 +6,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * Persists a provider discovery window and page checkpoint across bounded worker runs.
+ *
  * @property int $id
  * @property string $resource
  * @property int $next_page

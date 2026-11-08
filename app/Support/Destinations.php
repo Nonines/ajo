@@ -8,10 +8,16 @@ use App\Models\User;
 use DomainException;
 use Illuminate\Support\Facades\Validator;
 
+/**
+ * Saves bank destinations only after account resolution and recipient evidence agree.
+ */
 class Destinations
 {
     public function __construct(private PaymentGateway $gateway, private FinancialTransaction $transactions, private AuditTrail $audit) {}
 
+    /**
+     * Resolves the account outside the lock, then rechecks customer eligibility before saving encrypted details.
+     */
     public function save(User $user, string $label, string $accountNumber, string $bankCode): SavedDestination
     {
         Validator::make(compact('label', 'accountNumber', 'bankCode'), [

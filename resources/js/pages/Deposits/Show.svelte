@@ -23,6 +23,7 @@
     });
 
     type Popup = { resumeTransaction: (code: string) => void };
+    // Resume the saved checkout; financial recognition still depends on server-side provider verification.
     async function openCheckout(): Promise<void> {
         opening = true;
         checkoutError = '';

@@ -33,6 +33,7 @@ Route::middleware(['auth:web', 'verified'])->group(function () {
     Route::prefix('deposits')->name('deposits.')->group(function () {
         Route::get('/', [DepositController::class, 'index'])->name('index');
         Route::post('/', [DepositController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        // Register the callback before reference binding; a browser return only requests verification.
         Route::get('callback', [DepositConfirmationController::class, 'show'])->middleware('throttle:30,1')->name('callback');
         Route::get('{deposit:reference}', [DepositController::class, 'show'])->name('show');
         Route::post('{deposit:reference}/confirmation', [DepositConfirmationController::class, 'store'])->middleware('throttle:10,1')->name('confirm');

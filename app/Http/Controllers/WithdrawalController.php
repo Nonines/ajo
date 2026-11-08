@@ -18,8 +18,14 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Exposes owned withdrawal reservations and masks destination details in customer responses.
+ */
 class WithdrawalController extends Controller
 {
+    /**
+     * Lists reservations and real destinations with wallet value, recovery debt, and estimated fee tiers.
+     */
     public function index(Request $request, Ledger $ledger, PaymentGateway $gateway): Response
     {
         $user = $request->user('web');
@@ -45,6 +51,9 @@ class WithdrawalController extends Controller
         ]);
     }
 
+    /**
+     * Reserves funds against an owned destination and maps domain failures to form errors.
+     */
     public function store(StoreWithdrawalRequest $request, Withdrawals $withdrawals): RedirectResponse
     {
         $destination = SavedDestination::where('user_id', $request->user('web')->id)->findOrFail($request->integer('destination_id'));
@@ -57,6 +66,9 @@ class WithdrawalController extends Controller
         return to_route('withdrawals.show', $withdrawal);
     }
 
+    /**
+     * Shows an owned withdrawal and whether unresolved payout evidence needs investigation.
+     */
     public function show(Request $request, WithdrawalRequest $withdrawal): Response
     {
         abort_unless($request->user('web')->is_active, 403);
@@ -66,6 +78,9 @@ class WithdrawalController extends Controller
             'investigation' => PaymentException::where('resource_type', 'withdrawal')->where('resource_id', (string) $withdrawal->id)->whereNull('resolved_at')->exists()]);
     }
 
+    /**
+     * Requests cancellation of an owned withdrawal subject to the service's approval cutoff.
+     */
     public function destroy(Request $request, WithdrawalRequest $withdrawal, Withdrawals $withdrawals): RedirectResponse
     {
         abort_unless($request->user('web')->is_active, 403);
@@ -79,7 +94,11 @@ class WithdrawalController extends Controller
         return to_route('withdrawals.show', $withdrawal);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Masks bank details and exposes string amounts alongside the current review and cancellation status.
+     *
+     * @return array<string, mixed>
+     */
     private function summary(WithdrawalRequest $withdrawal): array
     {
         return ['id' => $withdrawal->id, 'reference' => $withdrawal->reference, 'state' => (string) $withdrawal->state,

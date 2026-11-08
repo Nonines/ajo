@@ -5,6 +5,9 @@ namespace App\Support;
 use Carbon\CarbonImmutable;
 use DomainException;
 
+/**
+ * Carries parsed provider payment evidence; deposit recognition still checks its local association.
+ */
 final readonly class VerifiedPayment
 {
     public function __construct(
@@ -14,7 +17,11 @@ final readonly class VerifiedPayment
         public ?CarbonImmutable $paidAt,
     ) {}
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Parses required provider fields and whole-kobo amounts, normalizing payment time to UTC.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public static function from(array $data): self
     {
         $customer = $data['customer'] ?? null;
@@ -42,6 +49,9 @@ final readonly class VerifiedPayment
         );
     }
 
+    /**
+     * Preserves numeric provider identities as strings, including values beyond JavaScript precision.
+     */
     public static function id(mixed $value): string
     {
         if ((! is_string($value) && ! is_int($value)) || ! preg_match('/^[0-9]{1,64}$/D', (string) $value)) {

@@ -4,6 +4,9 @@ namespace App\Support;
 
 use DomainException;
 
+/**
+ * Carries parsed payout evidence; a null fee means the incurred fee is still unverified.
+ */
 final readonly class VerifiedTransfer
 {
     public function __construct(
@@ -12,7 +15,11 @@ final readonly class VerifiedTransfer
         public string $recipientCode, public ?int $fee,
     ) {}
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Requires a positive amount and recipient evidence while preserving an unknown fee as null.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public static function from(array $data): self
     {
         foreach (['reference', 'domain', 'currency', 'status'] as $field) {

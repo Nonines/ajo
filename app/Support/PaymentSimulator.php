@@ -14,10 +14,16 @@ use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Str;
 
+/**
+ * Creates local financial scenarios that exercise ordinary approval and verification paths.
+ */
 class PaymentSimulator
 {
     public function __construct(private FinancialTransaction $transactions, private Clock $clock) {}
 
+    /**
+     * Requires current administrator permission and an explicitly enabled local or testing environment.
+     */
     public function authorize(Staff $staff): void
     {
         $current = app(Approvals::class)->authorize($staff, 'simulator.use');
@@ -26,6 +32,9 @@ class PaymentSimulator
         }
     }
 
+    /**
+     * Creates a simulated deposit or reserved withdrawal with separate provider evidence.
+     */
     public function create(Staff $staff, User $user, string $kind, Money $amount): PaymentSimulation
     {
         $this->authorize($staff);
@@ -69,6 +78,9 @@ class PaymentSimulator
         });
     }
 
+    /**
+     * Changes simulated provider evidence and emits the selected delivery or ordering scenario.
+     */
     public function observe(Staff $staff, PaymentSimulation $simulation, string $scenario): void
     {
         $this->authorize($staff);
@@ -118,7 +130,11 @@ class PaymentSimulator
         });
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Signs simulated observations with the dedicated key before sending them through the inbox.
+     *
+     * @param  array<string, mixed>  $data
+     */
     private function emit(string $event, array $data): void
     {
         $secret = config('withdrawals.simulation_signing_key');

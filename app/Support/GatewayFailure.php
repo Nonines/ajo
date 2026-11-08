@@ -4,6 +4,9 @@ namespace App\Support;
 
 use RuntimeException;
 
+/**
+ * Signals unavailable or inconclusive provider evidence with a retry delay in seconds.
+ */
 class GatewayFailure extends RuntimeException
 {
     public function __construct(string $message, public int $retryAfter = 60)

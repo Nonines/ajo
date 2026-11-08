@@ -16,8 +16,14 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Serves customer checkout and receipts with explicit ownership checks and string monetary values.
+ */
 class DepositController extends Controller
 {
+    /**
+     * Lists the active customer's deposits alongside checkout availability and outstanding recovery debt.
+     */
     public function index(Request $request, Ledger $ledger): Response
     {
         $user = $request->user('web');
@@ -31,6 +37,9 @@ class DepositController extends Controller
         ]);
     }
 
+    /**
+     * Initializes a validated checkout and maps domain failures to the amount field.
+     */
     public function store(StoreDepositRequest $request, Deposits $deposits): RedirectResponse
     {
         abort_unless(str_starts_with((string) config('payments.secret_key'), 'sk_test_'), 503, 'Paystack test checkout is not configured.');
@@ -43,6 +52,9 @@ class DepositController extends Controller
         return to_route('deposits.show', $deposit->reference);
     }
 
+    /**
+     * Shows an owned deposit with checkout access and only financially posted reversal allocations.
+     */
     public function show(Request $request, Deposit $deposit, Ledger $ledger): Response
     {
         abort_unless($request->user('web')->is_active, 403);
@@ -58,7 +70,11 @@ class DepositController extends Controller
         ]);
     }
 
-    /** @return array<string, int|string|null> */
+    /**
+     * Serializes deposit evidence with kobo amounts as strings for lossless browser transport.
+     *
+     * @return array<string, int|string|null>
+     */
     private function summary(Deposit $deposit): array
     {
         return ['id' => $deposit->id, 'reference' => $deposit->reference, 'state' => (string) $deposit->state,

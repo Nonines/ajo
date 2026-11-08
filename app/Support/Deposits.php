@@ -18,10 +18,16 @@ use DomainException;
 use Illuminate\Support\Str;
 use Throwable;
 
+/**
+ * Coordinates checkout and recognizes customer value only from matching provider evidence.
+ */
 class Deposits
 {
     public function __construct(private FinancialTransaction $transactions, private PaymentGateway $gateway, private Ledger $ledger, private Wallets $wallets, private Clock $clock, private PaymentNotices $notices) {}
 
+    /**
+     * Saves a replay-safe checkout intent before contacting the provider outside the customer lock.
+     */
     public function initialize(User $user, Money $net, string $requestKey): Deposit
     {
         if ($net->kobo < config('payments.minimum_net') || $net->kobo > config('payments.maximum_net')) {
@@ -76,6 +82,9 @@ class Deposits
         return $deposit->refresh();
     }
 
+    /**
+     * Fetches provider evidence, deferring transient failures and flagging invalid evidence.
+     */
     public function verify(Deposit $deposit): void
     {
         try {
@@ -93,6 +102,9 @@ class Deposits
         $this->recognize($deposit, $payment);
     }
 
+    /**
+     * Matches verified payment identity and amounts before posting debt repayment, wallet credit, and fees.
+     */
     public function recognize(Deposit $deposit, VerifiedPayment $payment): void
     {
         $this->transactions->run([$deposit->user_id], function () use ($deposit, $payment): void {
@@ -177,6 +189,9 @@ class Deposits
         });
     }
 
+    /**
+     * Schedules verification no earlier than both the local cadence and provider retry delay.
+     */
     private function defer(Deposit $deposit, int $seconds): void
     {
         $this->transactions->run([$deposit->user_id], function () use ($deposit, $seconds): void {
@@ -187,6 +202,9 @@ class Deposits
         });
     }
 
+    /**
+     * Slows verification for aged payments while retaining checks for late successful outcomes.
+     */
     private function nextVerification(Deposit $deposit, bool $failed): CarbonImmutable
     {
         $aged = $deposit->created_at->addHours(config('payments.escalation_hours'))->lte($this->clock->now());
