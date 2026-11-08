@@ -75,6 +75,9 @@ pest()->beforeEach(function (): void {
     config(['ledger.lock_store' => 'array']);
 })->in('Feature');
 
+/**
+ * Funds a test wallet through balanced ledger postings instead of editing its cached balance.
+ */
 function postWalletTestCredit(User $user, string $key = 'credit', int $kobo = 10000): Journal
 {
     $wallet = app(Wallets::class)->provision($user);
@@ -85,6 +88,9 @@ function postWalletTestCredit(User $user, string $key = 'credit', int $kobo = 10
     ], '2026-11-01', 'Test credit', $user->id);
 }
 
+/**
+ * Fakes selected payment jobs and checkout initialization while rejecting stray provider HTTP calls.
+ */
 function configurePaymentTest(): void
 {
     config(['payments.secret_key' => 'sk_test_fixture', 'inertia.ssr.enabled' => false]);
@@ -100,6 +106,9 @@ function configurePaymentTest(): void
     ]);
 }
 
+/**
+ * Creates a saved checkout using the isolated payment fixtures; value is not yet recognized.
+ */
 function initializePaymentTest(User $user, int $kobo = 500000): Deposit
 {
     configurePaymentTest();
@@ -107,7 +116,11 @@ function initializePaymentTest(User $user, int $kobo = 500000): Deposit
     return app(Deposits::class)->initialize($user, new Money($kobo), (string) Str::uuid());
 }
 
-/** @param array<string, mixed> $changes */
+/**
+ * Stubs transaction verification with overridable provider evidence stored by reference.
+ *
+ * @param  array<string, mixed>  $changes
+ */
 function fakeVerifiedPayment(Deposit $deposit, array $changes = []): void
 {
     config(['test_payments.'.$deposit->reference => array_replace([
@@ -120,7 +133,11 @@ function fakeVerifiedPayment(Deposit $deposit, array $changes = []): void
     ]);
 }
 
-/** @param array<string, mixed> $changes */
+/**
+ * Stubs processed refund evidence with explicit deduction amounts for recovery tests.
+ *
+ * @param  array<string, mixed>  $changes
+ */
 function fakeVerifiedRefund(Deposit $deposit, string $id, int $amount, array $changes = []): void
 {
     Http::fake([
@@ -131,7 +148,11 @@ function fakeVerifiedRefund(Deposit $deposit, string $id, int $amount, array $ch
     ]);
 }
 
-/** @param array<string, mixed> $changes */
+/**
+ * Builds an accepted and funded plan through the real ledger and lifecycle services.
+ *
+ * @param  array<string, mixed>  $changes
+ */
 function fundedAccrualPlan(int $principal = 1000000, int $rate = 1000, array $changes = []): SavingsPlan
 {
     $plan = SavingsPlan::factory()->create(['contract' => array_replace(['name' => 'Accrual test', 'disclosure' => 'Fixture',
@@ -144,6 +165,9 @@ function fundedAccrualPlan(int $principal = 1000000, int $rate = 1000, array $ch
     return app(SavingsPlans::class)->fund($plan->user, $plan);
 }
 
+/**
+ * Creates staff with the seeded role permissions and configured MFA for financial-action tests.
+ */
 function payoutStaff(string $role = 'manager'): Staff
 {
     app(StaffPermissionSeeder::class)->run();
@@ -153,6 +177,9 @@ function payoutStaff(string $role = 'manager'): Staff
     return $staff;
 }
 
+/**
+ * Funds principal, quoted fee, and optional remainder before creating an ordinary payout reservation.
+ */
 function requestedPayout(int $principal = 100000, int $remaining = 0): WithdrawalRequest
 {
     $user = User::factory()->create();
@@ -163,6 +190,9 @@ function requestedPayout(int $principal = 100000, int $remaining = 0): Withdrawa
     return app(Withdrawals::class)->request($user, $destination, new Money($principal), (string) Str::uuid());
 }
 
+/**
+ * Stubs matching transfer endpoints and exercises local server approval during submission.
+ */
 function fakePayoutOutcome(WithdrawalRequest $withdrawal, string $status = 'success', ?int $fee = 1000): void
 {
     Http::preventStrayRequests();

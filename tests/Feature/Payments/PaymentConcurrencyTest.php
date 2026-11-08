@@ -12,6 +12,7 @@ use Symfony\Component\Process\Process;
 
 function paymentWorker(string $database, int $depositId, string $mode, int $eventId = 0): Process
 {
+    // Each process boots independently against the shared database and real Redis customer locks.
     $code = <<<'PHP'
 require getcwd().'/vendor/autoload.php';
 $app = require getcwd().'/bootstrap/app.php';

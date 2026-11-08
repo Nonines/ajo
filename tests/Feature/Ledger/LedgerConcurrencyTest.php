@@ -10,6 +10,7 @@ use Symfony\Component\Process\Process;
 
 function ledgerWorker(string $database, int $userId, int $walletId, int $cashId, string $mode, string $key, int $amount, int $hold = 0, int $lease = 30): Process
 {
+    // Use a separate process and shared SQLite file; the holding signal coordinates real lock contention.
     $code = <<<'PHP'
 require getcwd().'/vendor/autoload.php';
 $app = require getcwd().'/bootstrap/app.php';
