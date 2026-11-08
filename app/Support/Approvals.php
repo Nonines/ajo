@@ -16,6 +16,7 @@ use App\Support\WithdrawalStates\UnderReview;
 use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class Approvals
@@ -26,6 +27,8 @@ class Approvals
         'product.rate' => ['rates.make', 'rates.check'],
         'plan.hold' => ['plans.hold', 'plans.hold'],
         'plan.release' => ['plans.release', 'plans.release'],
+        'plan.waive' => ['waivers.make', 'waivers.check'],
+        'plan.close' => ['plans.close', 'plans.close'],
         'recovery.release' => ['recovery.release', 'recovery.release'],
         'recovery.write-off' => ['recovery.write-off', 'recovery.write-off'],
     ];
@@ -52,7 +55,7 @@ class Approvals
         }
         $expected = match ($action) {
             'withdrawal' => WithdrawalRequest::class, 'product.rate' => SavingsProduct::class,
-            'plan.hold', 'plan.release' => SavingsPlan::class, default => User::class,
+            'plan.hold', 'plan.release', 'plan.waive', 'plan.close' => SavingsPlan::class, default => User::class,
         };
         if (! $subject instanceof $expected) {
             throw new DomainException('Approval subject does not match the action.');
@@ -73,11 +76,19 @@ class Approvals
             } elseif ($subject instanceof SavingsProduct) {
                 $payload['expected_version'] = $subject->current_version;
             } elseif ($subject instanceof SavingsPlan) {
-                $payload = ['expected_state' => (string) $subject->state];
-                $expected = $action === 'plan.hold' ? 'active' : 'suspended';
-                if ((string) $subject->state !== $expected) {
-                    throw new DomainException('Plan state is ineligible for the proposed action.');
+                if ($action === 'plan.waive') {
+                    $payload = app(SavingsSettlements::class)->waiverTerms($subject, $payload);
+                } elseif ($action === 'plan.close') {
+                    app(SavingsSettlements::class)->validateAdministrative($subject, $payload);
+                    $payload = ['correction' => $payload['correction'], 'evidence' => $payload['evidence']];
+                } else {
+                    $payload = [];
+                    $expected = $action === 'plan.hold' ? 'active' : 'suspended';
+                    if ((string) $subject->state !== $expected) {
+                        throw new DomainException('Plan state is ineligible for the proposed action.');
+                    }
                 }
+                $payload['expected_state'] = (string) $subject->state;
             }
             $approval = new ApprovalRequest;
             $approval->forceFill(['subject_type' => $subject->getMorphClass(), 'subject_id' => $subject->getKey(),
@@ -100,36 +111,56 @@ class Approvals
         $approval = ApprovalRequest::findOrFail($approval->id);
         $subject = $this->subject($approval);
 
-        return $this->transactions->run($this->customers($subject), function () use ($staff, $approval, $accept, $reason): ApprovalRequest {
-            $current = $approval->refresh();
-            $permissions = self::PERMISSIONS[$current->action] ?? throw new DomainException('Unsupported approval.');
-            $checker = $this->authorize($staff, $permissions[1]);
-            if ($current->requested_by === $checker->id) {
+        if ($accept && $approval->action === 'plan.close' && $subject instanceof SavingsPlan && $approval->state === 'pending') {
+            $checker = $this->authorize($staff, 'plans.close');
+            if ($approval->requested_by === $checker->id) {
                 throw new AuthorizationException('The requester cannot decide their own proposal.');
             }
-            if ($current->state !== 'pending') {
-                throw new DomainException('This proposal no longer awaits a decision.');
+            $this->authorize(Staff::findOrFail($approval->requested_by), 'plans.close');
+            if ($approval->expires_at->greaterThan($this->clock->now())) {
+                app(SavingsSettlements::class)->validateAdministrative($subject, $approval->payload);
+                app(SavingsSettlements::class)->prepareClosure($subject);
             }
-            if (trim($reason) === '') {
-                throw new DomainException('A decision reason is required.');
-            }
-            if ($this->expire($current)) {
-                return $current->refresh();
-            }
-            $this->authorize(Staff::findOrFail($current->requested_by), $permissions[0]);
-            $subject = $this->subject($current);
-            $current->forceFill(['state' => $accept ? 'approved' : 'rejected', 'decided_by' => $checker->id,
-                'decision_reason' => $reason, 'decided_at' => $this->clock->now()])->save();
-            if ($accept) {
-                $evidence = $this->apply($current, $checker, $subject);
-                $current->forceFill(['applied_at' => $this->clock->now(), 'evidence' => $evidence])->save();
-            } elseif ($subject instanceof WithdrawalRequest) {
-                app(Withdrawals::class)->release($subject, 'rejected', $reason);
-            }
-            $this->audit->record('approval.'.$current->state, $current, ['reason' => $reason], $checker);
+        }
 
-            return $current;
-        });
+        try {
+            return $this->transactions->run($this->customers($subject), function () use ($staff, $approval, $accept, $reason): ApprovalRequest {
+                $current = $approval->refresh();
+                $permissions = self::PERMISSIONS[$current->action] ?? throw new DomainException('Unsupported approval.');
+                $checker = $this->authorize($staff, $permissions[1]);
+                if ($current->requested_by === $checker->id) {
+                    throw new AuthorizationException('The requester cannot decide their own proposal.');
+                }
+                if ($current->state !== 'pending') {
+                    throw new DomainException('This proposal no longer awaits a decision.');
+                }
+                if (trim($reason) === '') {
+                    throw new DomainException('A decision reason is required.');
+                }
+                if ($this->expire($current)) {
+                    return $current->refresh();
+                }
+                $this->authorize(Staff::findOrFail($current->requested_by), $permissions[0]);
+                $subject = $this->subject($current);
+                $current->forceFill(['state' => $accept ? 'approved' : 'rejected', 'decided_by' => $checker->id,
+                    'decision_reason' => $reason, 'decided_at' => $this->clock->now()])->save();
+                if ($accept) {
+                    $evidence = $this->apply($current, $checker, $subject);
+                    $current->forceFill(['applied_at' => $this->clock->now(), 'evidence' => $evidence])->save();
+                } elseif ($subject instanceof WithdrawalRequest) {
+                    app(Withdrawals::class)->release($subject, 'rejected', $reason);
+                }
+                if (! $accept && $current->action === 'plan.waive' && $subject instanceof SavingsPlan) {
+                    app(SavingsNotices::class)->event($subject, 'savings_waiver_rejected', ['approval_id' => (string) $current->id], 'waiver-proposal:'.$current->id.':rejected');
+                }
+                $this->audit->record('approval.'.$current->state, $current, ['reason' => $reason], $checker);
+
+                return $current;
+            });
+        } catch (SavingsEvidenceMismatch $failure) {
+            app(SavingsSettlements::class)->retainInvestigation($failure);
+            throw $failure;
+        }
     }
 
     public function expire(ApprovalRequest $approval): bool
@@ -143,6 +174,9 @@ class Approvals
             app(Withdrawals::class)->release($subject, 'cancelled', 'Review deadline expired');
         }
         $approval->forceFill(['state' => 'expired'])->save();
+        if ($approval->action === 'plan.waive' && $subject instanceof SavingsPlan) {
+            app(SavingsNotices::class)->event($subject, 'savings_waiver_expired', ['approval_id' => (string) $approval->id], 'waiver-proposal:'.$approval->id.':expired');
+        }
         $this->audit->record('approval.expired', $approval);
 
         return true;
@@ -170,6 +204,14 @@ class Approvals
         if ($subject instanceof SavingsPlan) {
             if ((string) $subject->state !== $approval->payload['expected_state']) {
                 throw new DomainException('Plan changed after this proposal.');
+            }
+            if ($approval->action === 'plan.waive') {
+                return ['waiver_id' => app(SavingsSettlements::class)->issueWaiver($subject, $approval)];
+            }
+            if ($approval->action === 'plan.close') {
+                app(SavingsSettlements::class)->administrative($subject, $approval);
+
+                return ['settlement_id' => DB::table('plan_settlements')->where('savings_plan_id', $subject->id)->sole()->id];
             }
             $subject->state->transitionTo($approval->action === 'plan.hold' ? Suspended::class : Active::class);
             if ($approval->action === 'plan.release') {

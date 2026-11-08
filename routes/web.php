@@ -26,6 +26,7 @@ Route::middleware(['auth:web', 'verified'])->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->middleware('throttle:10,1')->name('store');
         Route::get('{plan}', 'show')->name('show');
+        Route::post('{plan}/preview', 'preview')->middleware('throttle:10,1')->name('preview');
         Route::patch('{plan}', 'update')->middleware('throttle:10,1')->name('update');
     });
 

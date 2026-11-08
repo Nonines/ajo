@@ -18,12 +18,25 @@ class SavingsMaturityNotice extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)->subject('Your Ajo savings matured')->line('Your fixed-term savings have settled.');
-        foreach (['principal', 'gross_interest', 'net_interest', 'withholding', 'debt_repayment', 'remaining_debt', 'wallet_credit'] as $key) {
+        $outcome = match ($this->data['type']) {
+            'savings_maturity' => 'matured', 'savings_rolled_over' => 'rolled over',
+            'savings_early_termination' => 'closed early', 'savings_admin_closed' => 'administratively closed',
+            default => str_replace('_', ' ', substr($this->data['type'], 8)),
+        };
+        $mail = (new MailMessage)->subject('Ajo savings: '.$outcome)->line('Your savings update: '.$outcome.'.');
+        foreach (['principal', 'gross_interest', 'capitalized_interest', 'forfeiture', 'principal_penalty', 'waived_forfeiture', 'waived_penalty',
+            'net_interest', 'withholding', 'debt_repayment', 'remaining_debt', 'wallet_credit', 'interest_cap', 'principal_cap'] as $key) {
+            if (! isset($this->data[$key])) {
+                continue;
+            }
             $kobo = (int) $this->data[$key];
             $mail->line(ucwords(str_replace('_', ' ', $key)).': NGN '.intdiv($kobo, 100).'.'.str_pad((string) ($kobo % 100), 2, '0', STR_PAD_LEFT));
         }
 
-        return $mail->action('View maturity statement', route('savings.show', $this->data['plan_id']));
+        if (isset($this->data['expires_at'])) {
+            $mail->line('Waiver expires at '.$this->data['expires_at'].'.');
+        }
+
+        return $mail->action('View savings plan', route('savings.show', $this->data['plan_id']));
     }
 }

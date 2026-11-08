@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class ApprovalRequestResource extends Resource
 {
@@ -49,7 +50,11 @@ class ApprovalRequestResource extends Resource
                 ->action(function (ApprovalRequest $record, array $data) use ($accept): void {
                     $staff = Filament::auth()->user();
                     abort_unless($staff instanceof Staff, 403);
-                    app(Approvals::class)->decide($staff, $record, $accept, $data['reason']);
+                    try {
+                        app(Approvals::class)->decide($staff, $record, $accept, $data['reason']);
+                    } catch (\DomainException $exception) {
+                        throw ValidationException::withMessages(['reason' => $exception->getMessage()]);
+                    }
                 });
         }
 

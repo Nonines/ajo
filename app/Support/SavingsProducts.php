@@ -26,6 +26,12 @@ class SavingsProducts
             'withholding_bp' => ['required', 'integer', 'between:0,10000'],
             'terms' => ['required', 'array', 'min:1'], 'terms.*.days' => ['required', 'integer', 'min:30', 'multiple_of:30', 'distinct'],
             'terms.*.annual_rate_bp' => ['required', 'integer', 'min:0'],
+            'interest' => ['sometimes', 'required', 'in:simple,daily,30_days'],
+            'lock' => ['sometimes', 'required', 'in:until_maturity,terminable,uncancellable'],
+            'minimum_holding_days' => ['required_if:lock,terminable', 'nullable', 'integer', 'min:1'],
+            'forfeiture_bp' => ['sometimes', 'required', 'integer', 'between:0,10000'],
+            'principal_penalty_bp' => ['sometimes', 'required', 'integer', 'between:0,10000'],
+            'available' => ['sometimes', 'boolean'],
         ])->validate();
         try {
             $minimum = new Money((string) $values['minimum']);
@@ -38,9 +44,15 @@ class SavingsProducts
         }
         $terms = array_map(static fn (array $term): array => ['days' => (int) $term['days'], 'annual_rate_bp' => (int) $term['annual_rate_bp']], array_values($values['terms']));
         usort($terms, static fn (array $a, array $b): int => $a['days'] <=> $b['days']);
+        if (($values['lock'] ?? 'until_maturity') === 'terminable' && (int) $values['minimum_holding_days'] >= $terms[0]['days']) {
+            throw ValidationException::withMessages(['minimum_holding_days' => 'Minimum holding must be shorter than every offered term.']);
+        }
         $contract = ['name' => $values['name'], 'disclosure' => $values['disclosure'], 'minimum' => (string) $minimum->kobo,
             'maximum' => (string) $maximum->kobo, 'withholding_bp' => (int) $values['withholding_bp'], 'terms' => $terms,
-            'interest' => 'simple', 'day_count' => 'Actual/365', 'lock' => 'until_maturity', 'fee' => '0'];
+            'interest' => $values['interest'] ?? 'simple', 'day_count' => 'Actual/365', 'lock' => $values['lock'] ?? 'until_maturity', 'fee' => '0',
+            'minimum_holding_days' => ($values['lock'] ?? '') === 'terminable' ? (int) $values['minimum_holding_days'] : null,
+            'forfeiture_bp' => (int) ($values['forfeiture_bp'] ?? 0), 'principal_penalty_bp' => (int) ($values['principal_penalty_bp'] ?? 0),
+            'available' => (bool) ($values['available'] ?? true)];
 
         return $this->transactions->run([], function () use ($staff, $product, $contract, $approval, $data): SavingsProduct {
             $current = $product === null ? new SavingsProduct : SavingsProduct::findOrFail($product->id);

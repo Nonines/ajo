@@ -131,12 +131,13 @@ function fakeVerifiedRefund(Deposit $deposit, string $id, int $amount, array $ch
     ]);
 }
 
-function fundedAccrualPlan(int $principal = 1000000, int $rate = 1000): SavingsPlan
+/** @param array<string, mixed> $changes */
+function fundedAccrualPlan(int $principal = 1000000, int $rate = 1000, array $changes = []): SavingsPlan
 {
-    $plan = SavingsPlan::factory()->create(['contract' => ['name' => 'Accrual test', 'disclosure' => 'Fixture',
+    $plan = SavingsPlan::factory()->create(['contract' => array_replace(['name' => 'Accrual test', 'disclosure' => 'Fixture',
         'minimum' => '1', 'maximum' => (string) PHP_INT_MAX, 'withholding_bp' => 1000, 'terms' => [['days' => 30, 'annual_rate_bp' => $rate]],
         'interest' => 'simple', 'day_count' => 'Actual/365', 'lock' => 'until_maturity', 'fee' => '0',
-        'principal' => (string) $principal, 'days' => 30, 'annual_rate_bp' => $rate]]);
+        'principal' => (string) $principal, 'days' => 30, 'annual_rate_bp' => $rate], $changes)]);
     postWalletTestCredit($plan->user, key: 'savings-credit:'.$plan->id, kobo: $principal);
     app(SavingsPlans::class)->accept($plan->user, $plan);
 

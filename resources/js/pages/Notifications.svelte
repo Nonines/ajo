@@ -27,10 +27,15 @@
                 <h2 class="text-xl font-bold">Withdrawal {notice.data.type.slice(11).replaceAll('_', ' ')}</h2>
                 <p>Principal: {formatMoney(notice.data.principal)}. Reserved fee: {formatMoney(notice.data.reserved_fee)}. Actual fee: {notice.data.actual_fee === 'unverified' ? 'awaiting verification' : formatMoney(notice.data.actual_fee)}. Remaining recovery balance: {formatMoney(notice.data.remaining_debt)}.</p>
                 <Link href={withdrawalShow(Number(notice.data.withdrawal_id))} class="underline">View withdrawal</Link>
-            {:else if notice.data.type === 'savings_maturity'}
-                <h2 class="text-xl font-bold">Your savings matured</h2>
+            {:else if notice.data.type.startsWith('savings_waiver_')}
+                <h2 class="text-xl font-bold">Savings waiver {notice.data.type.slice(15)}</h2>
+                {#if notice.data.interest_cap}<p>Interest-forfeiture cap: {formatMoney(notice.data.interest_cap)}. Principal-penalty cap: {formatMoney(notice.data.principal_cap)}. Expires {notice.data.expires_at}.</p>{/if}
+                <Link href={savingsShow(Number(notice.data.plan_id))} class="underline">View savings plan</Link>
+            {:else if notice.data.type.startsWith('savings_')}
+                <h2 class="text-xl font-bold">Savings {notice.data.type.slice(8).replaceAll('_', ' ')}</h2>
                 <p>Principal: {formatMoney(notice.data.principal)}. Gross interest: {formatMoney(notice.data.gross_interest)}. Withholding: {formatMoney(notice.data.withholding)}. Net interest: {formatMoney(notice.data.net_interest)}. Applied to recovery: {formatMoney(notice.data.debt_repayment)}. Paid to wallet: {formatMoney(notice.data.wallet_credit)}. Remaining recovery balance: {formatMoney(notice.data.remaining_debt)}.</p>
-                <Link href={savingsShow(Number(notice.data.plan_id))} class="underline">View maturity statement</Link>
+                {#if notice.data.forfeiture}<p>Interest forfeited: {formatMoney(notice.data.forfeiture)}. Principal penalty: {formatMoney(notice.data.principal_penalty)}. Waived forfeiture: {formatMoney(notice.data.waived_forfeiture)}. Waived penalty: {formatMoney(notice.data.waived_penalty)}.</p>{/if}
+                <Link href={savingsShow(Number(notice.data.plan_id))} class="underline">View settlement and renewal history</Link>
             {:else}
             <h2 class="text-xl font-bold">Payment {notice.data.type}</h2>
             <p>Net value: {formatMoney(notice.data.net)}. Applied to debt: {formatMoney(notice.data.debt_repayment)}. Remaining debt: {formatMoney(notice.data.remaining_debt)}.</p>

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $savings_product_id
  * @property int $version
- * @property array{name: string, disclosure: string, minimum: string, maximum: string, withholding_bp: int, terms: list<array{days: int, annual_rate_bp: int}>, interest: string, day_count: string, lock: string, fee: string} $contract
+ * @property array{name: string, disclosure: string, minimum: string, maximum: string, withholding_bp: int, terms: list<array{days: int, annual_rate_bp: int}>, interest: string, day_count: string, lock: string, fee: string, available?: bool, minimum_holding_days?: int|null, forfeiture_bp?: int, principal_penalty_bp?: int} $contract
  */
 class SavingsProductVersion extends Model
 {

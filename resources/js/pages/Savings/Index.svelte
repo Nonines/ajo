@@ -28,7 +28,7 @@
     <section class="rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[4px_4px_0_var(--foreground)]">
         <p class="font-mono text-xs font-bold tracking-widest uppercase">Your savings / fixed term</p>
         <h1 class="mt-4 font-display text-4xl font-black">Give your plans time.</h1>
-        <p class="mt-4">Set aside a lump sum from your wallet. Your rate stays fixed and your money stays locked until maturity.</p>
+        <p class="mt-4">Set aside a lump sum from your wallet. Review the fixed rate, interest mode and withdrawal terms before funding.</p>
     </section>
     {#if remainingDebt !== '0'}
         <p class="rounded-md border-2 border-foreground bg-card p-6">Recovery balance: {formatMoney(remainingDebt)}. Repay this balance before funding a new plan. Existing contracts continue earning under their original terms; net maturity proceeds repay debt first.</p>
@@ -39,7 +39,10 @@
             <article class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
                 <h2 class="text-2xl font-bold">{product.contract.name}</h2>
                 <p class="whitespace-pre-wrap">{product.contract.disclosure}</p>
-                <p>Principal: {formatMoney(product.contract.minimum)} to {formatMoney(product.contract.maximum)}. Simple interest on Actual/365. Withholding: {formatBasisPoints(product.contract.withholding_bp)} of interest. Plan fees: {formatMoney(product.contract.fee)}.</p>
+                <p>Principal: {formatMoney(product.contract.minimum)} to {formatMoney(product.contract.maximum)}. {product.contract.interest === 'simple' ? 'Simple interest' : product.contract.interest === 'daily' ? 'Daily compounding' : 'Compounding every 30 days'} on Actual/365. Withholding: {formatBasisPoints(product.contract.withholding_bp)} of retained interest. Plan fees: {formatMoney(product.contract.fee)}.</p>
+                {#if product.contract.lock === 'terminable'}
+                    <p>Early exit after {product.contract.minimum_holding_days} full days from accrual start. Interest forfeiture: {formatBasisPoints(product.contract.forfeiture_bp ?? '0')}, including compounded interest. Original-principal penalty: {formatBasisPoints(product.contract.principal_penalty_bp ?? '0')}.</p>
+                {:else}<p>Uncancellable until maturity.</p>{/if}
                 <Form {...store.form()} class="grid gap-4">
                     {#snippet children({ errors, processing })}
                         <input type="hidden" name="request_key" value={requestKey} />
