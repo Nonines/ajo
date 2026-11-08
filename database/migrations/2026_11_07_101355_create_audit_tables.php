@@ -24,6 +24,7 @@ return new class extends Migration
             $table->timestamp('created_at')->index();
             $table->timestamp('updated_at');
         });
+        // The head tracks the latest event; the floor anchors the prefix moved into verified archives.
         Schema::create('audit_head', function (Blueprint $table): void {
             $table->unsignedInteger('id')->primary();
             $table->unsignedBigInteger('sequence')->default(0);
@@ -51,6 +52,7 @@ return new class extends Migration
             $table->string('key_version');
             $table->string('seal', 64);
         });
+        // Enforce append-only evidence even for raw queries; deletion requires the maintenance connection gate.
         DB::unprepared("CREATE TRIGGER activity_log_no_update BEFORE UPDATE ON activity_log BEGIN SELECT RAISE(ABORT, 'Audit history is immutable'); END");
         DB::unprepared("CREATE TRIGGER activity_log_no_delete BEFORE DELETE ON activity_log WHEN audit_maintenance() != 1 BEGIN SELECT RAISE(ABORT, 'Audit history is immutable'); END");
         DB::unprepared("CREATE TRIGGER activity_log_no_replace BEFORE INSERT ON activity_log WHEN NEW.id != (SELECT sequence + 1 FROM audit_head WHERE id = 1) OR NEW.previous_hash != (SELECT hash FROM audit_head WHERE id = 1) OR EXISTS (SELECT 1 FROM activity_log WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT, 'Audit sequence is immutable'); END");

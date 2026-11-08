@@ -13,18 +13,27 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * Appends redacted events to an HMAC chain within serialized financial transactions.
+ */
 class AuditTrail
 {
     private bool $writing = false;
 
     public function __construct(private FinancialTransaction $transactions, private Clock $clock) {}
 
+    /**
+     * Allows the audit model to distinguish the chain writer from ordinary model saves.
+     */
     public function isWriting(): bool
     {
         return $this->writing;
     }
 
-    /** @param array<string, mixed> $properties
+    /**
+     * Builds an event with an explicit actor or one inferred from the current request context.
+     *
+     * @param  array<string, mixed>  $properties
      * @param  array<string, mixed>  $changes
      */
     public function record(string $event, ?Model $subject = null, array $properties = [], ?Model $actor = null, array $changes = []): AuditEvent
@@ -43,6 +52,9 @@ class AuditTrail
         return $this->append($activity);
     }
 
+    /**
+     * Redacts and seals an event, advancing the chain head in the same transaction.
+     */
     public function append(AuditEvent $activity): AuditEvent
     {
         return $this->transactions->run([], function () use ($activity): AuditEvent {
@@ -83,13 +95,20 @@ class AuditTrail
         });
     }
 
+    /**
+     * Recognizes staff panel and Livewire contexts when selecting the audit actor.
+     */
     public function staffContext(): bool
     {
         return (app()->bound('request') && (request()->routeIs('filament.*') || request()->is('livewire/*')))
             || (Filament::getCurrentPanel() !== null && Auth::getDefaultDriver() === 'staff');
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Selects the persisted fields covered by the event hash, including raw timestamp values.
+     *
+     * @return array<string, mixed>
+     */
     public function envelope(AuditEvent $event): array
     {
         return ['id' => (int) $event->id, 'log_name' => $event->log_name, 'description' => $event->description,
@@ -100,7 +119,11 @@ class AuditTrail
             'updated_at' => $event->getAttributes()['updated_at']];
     }
 
-    /** @param array<string, mixed> $value */
+    /**
+     * Sorts associative keys recursively while preserving list order for reproducible signatures.
+     *
+     * @param  array<string, mixed>  $value
+     */
     public function canonical(array $value): string
     {
         $sort = function (mixed $item) use (&$sort): mixed {
@@ -117,6 +140,9 @@ class AuditTrail
         return json_encode($sort($value), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * Requires a dedicated signing key for the requested historical key version.
+     */
     public function key(string $version): string
     {
         $key = config('audit.keys.'.$version);
@@ -127,6 +153,9 @@ class AuditTrail
         return $key;
     }
 
+    /**
+     * Verifies archive continuity, retained online events, and the head; returns the final sequence.
+     */
     public function verify(): int
     {
         return $this->transactions->run([], function (): int {
@@ -149,6 +178,9 @@ class AuditTrail
         });
     }
 
+    /**
+     * Checks one expected sequence and predecessor hash, returning the authenticated event hash.
+     */
     public function verifyEvent(AuditEvent $event, int $sequence, string $hash): string
     {
         if ($event->id !== $sequence || ! hash_equals($hash, $event->previous_hash)
@@ -159,7 +191,10 @@ class AuditTrail
         return $event->hash;
     }
 
-    /** @param array<array-key, mixed> $values
+    /**
+     * Recursively removes recognized credential fields and masks bank account details before sealing.
+     *
+     * @param  array<array-key, mixed>  $values
      * @return array<array-key, mixed>
      */
     private function redact(array $values): array

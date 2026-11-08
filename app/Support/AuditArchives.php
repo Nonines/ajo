@@ -10,10 +10,16 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Archives verified audit prefixes and preserves sealed chain boundaries after retention expiry.
+ */
 class AuditArchives
 {
     public function __construct(private AuditTrail $audit, private FinancialTransaction $transactions, private Clock $clock) {}
 
+    /**
+     * During maintenance, verifies and archives an old prefix, then marks expired archives for purge.
+     */
     public function maintain(): int
     {
         if (! app()->isDownForMaintenance()) {
@@ -67,6 +73,9 @@ class AuditArchives
         });
     }
 
+    /**
+     * Deletes files only after durable purge markers exist and prunes references through the purged prefix.
+     */
     public function purgeFiles(): void
     {
         if (! app()->isDownForMaintenance()) {
@@ -88,7 +97,10 @@ class AuditArchives
         DB::table('audit_customer_references')->where('last_sequence', '<=', $prefix)->delete();
     }
 
-    /** @param array<string, mixed> $manifest
+    /**
+     * Returns authenticated archive rows without inserting them into the online audit table.
+     *
+     * @param  array<string, mixed>  $manifest
      * @return list<array<string, mixed>>
      */
     public function restore(array $manifest): array
@@ -119,6 +131,9 @@ class AuditArchives
         return $payload['events'];
     }
 
+    /**
+     * Verifies contiguous archive boundaries and checks unpurged contents against the online floor.
+     */
     public function verify(): void
     {
         $sequence = 0;
@@ -143,7 +158,11 @@ class AuditArchives
         }
     }
 
-    /** @param array<string, mixed> $manifest */
+    /**
+     * Signs manifest metadata while excluding its database ID and the seal itself.
+     *
+     * @param  array<string, mixed>  $manifest
+     */
     private function seal(array $manifest): string
     {
         unset($manifest['id'], $manifest['seal']);

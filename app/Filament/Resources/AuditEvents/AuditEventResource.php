@@ -13,6 +13,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Provides a read-only audit view and records authorized access to the audit query.
+ */
 class AuditEventResource extends Resource
 {
     protected static ?string $model = AuditEvent::class;
@@ -29,6 +32,9 @@ class AuditEventResource extends Resource
         return false;
     }
 
+    /**
+     * Records an authorized audit read before returning the resource query.
+     */
     public static function getEloquentQuery(): Builder
     {
         $staff = Filament::auth()->user();

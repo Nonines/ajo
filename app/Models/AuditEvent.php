@@ -6,10 +6,16 @@ use App\Support\AuditTrail;
 use DomainException;
 use Spatie\Activitylog\Models\Activity;
 
+/**
+ * Restricts model writes to the chain writer and rejects updates or deletion of audit evidence.
+ */
 class AuditEvent extends Activity
 {
     public $incrementing = false;
 
+    /**
+     * Rejects model writes that would bypass the protected financial evidence path.
+     */
     protected static function booted(): void
     {
         static::saving(function (): void {

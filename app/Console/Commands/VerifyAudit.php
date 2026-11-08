@@ -9,6 +9,9 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Checks retained chain evidence and reports the limits of verification after archive expiry.
+ */
 #[Signature('audit:verify')]
 #[Description('Verify retained audit evidence and its chain head')]
 class VerifyAudit extends Command
