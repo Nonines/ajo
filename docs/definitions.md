@@ -4,44 +4,44 @@ This is a plain-language guide to words, field names, settings, and rules used i
 
 ## Reading names in the app
 
-| Name or pattern | Simple meaning |
-| --- | --- |
-| Environment variable | A setting supplied outside the code, usually through `.env`. Names such as `AUDIT_CHAIN_KEY` use capital letters. |
-| Config key | The name the app uses to read a setting. For example, `audit.keys.v1` gets its value from `AUDIT_CHAIN_KEY`. See [audit config](../config/audit.php). |
-| Secret key | A private value used to sign data, encrypt data, or talk to another service. Its purpose depends on which key it is. |
-| Request key | A label for one requested action. It helps the app recognise a retry of that same action. It is not a password. |
-| `id` / `*_id` | An identifier for a stored record. For example, `user_id` connects a record to its customer. |
-| `*_at` | A date and time, such as `funded_at`. |
-| `*_bp` | A rate stored in basis points, such as `annual_rate_bp`. |
-| `*_kobo` | A value measured in kobo. Other money fields, including `principal`, also use kobo even without this ending. |
-| State | The stage a record has reached, such as `active`, `confirmed`, or `paid`. Each kind of record has its own states. |
-| Snapshot | A saved copy of the rules or details at a particular time. Later changes to the original do not rewrite the copy. |
+| Name or pattern      | Simple meaning                                                                                                                                        |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Environment variable | A setting supplied outside the code, usually through `.env`. Names such as `AUDIT_CHAIN_KEY` use capital letters.                                     |
+| Config key           | The name the app uses to read a setting. For example, `audit.keys.v1` gets its value from `AUDIT_CHAIN_KEY`. See [audit config](../config/audit.php). |
+| Secret key           | A private value used to sign data, encrypt data, or talk to another service. Its purpose depends on which key it is.                                  |
+| Request key          | A label for one requested action. It helps the app recognise a retry of that same action. It is not a password.                                       |
+| `id` / `*_id`        | An identifier for a stored record. For example, `user_id` connects a record to its customer.                                                          |
+| `*_at`               | A date and time, such as `funded_at`.                                                                                                                 |
+| `*_bp`               | A rate stored in basis points, such as `annual_rate_bp`.                                                                                              |
+| `*_kobo`             | A value measured in kobo. Other money fields, including `principal`, also use kobo even without this ending.                                          |
+| State                | The stage a record has reached, such as `active`, `confirmed`, or `paid`. Each kind of record has its own states.                                     |
+| Snapshot             | A saved copy of the rules or details at a particular time. Later changes to the original do not rewrite the copy.                                     |
 
 ## Money and rates
 
 Sources: [Money](../app/Support/Money.php), [BasisPoints](../app/Support/BasisPoints.php), [savings interest](../app/Support/SavingsAccrual.php), and [withdrawals](../app/Support/Withdrawals.php).
 
-| Term or field | What it means and what it affects |
-| --- | --- |
-| NGN / naira / kobo | NGN is the currency code for Nigerian naira. ₦1 is 100 kobo. Ajo records money in whole kobo. |
-| Integer money | Money stored as a whole number of kobo. ₦1,500 is `150000`, not `1500.00`. This avoids errors from decimal computer maths. |
-| Money string | An amount sent as text, such as `"150000"`. It still means 150,000 kobo, or ₦1,500. `Money` serializes amounts this way. |
-| Principal | In savings, the original money put into the plan, before interest. In a withdrawal, the amount to send to the bank, before the processing fee. In reversal accounting, it means the original customer value being recovered, separate from fees. |
-| Rate | A percentage used in a calculation. Check what it applies to: an annual interest rate applies to savings principal; a withholding rate applies to interest. |
-| Basis point / bp | One hundredth of one percentage point. `1 bp = 0.01%`, `100 bp = 1%`, and `1000 bp = 10%`. Divide basis points by 10,000 to get the multiplier. |
-| `annual_rate_bp` | The yearly savings rate in basis points. `1200` means 12% per year. It does not mean a 12% return over every plan term. |
-| Percentage point | The difference between two percentages. A change from 10% to 12% is 2 percentage points, or 200 basis points. |
-| Interest | Money earned on the saved principal. Ajo records earned interest separately from principal. |
-| Simple interest | Interest calculated using the original principal. Earned interest does not itself earn interest. Products can alternatively select daily or 30-day compounding. |
-| Actual/365 | Use the actual number of eligible saving days, with 365 as the yearly divisor, including in a leap year. |
-| Gross interest | Interest before forfeiture and withholding. |
-| Withholding / `withholding_bp` | The part taken from retained interest after forfeiture at settlement. With `1000` bp, ₦1,000 gross interest gives ₦100 withholding and ₦900 net interest. This is an app setting, not a statement of tax law. |
-| Net interest | Gross interest minus forfeiture and withholding. It does not include the returned principal. |
-| Gross / net | Gross means before the relevant deduction; net means after it. Check the context: deposit net value and net interest are different amounts. |
-| Micro-kobo | A millionth of one kobo. Savings calculations keep these small fractions so they can accumulate before whole-kobo posting. These are not separately spendable funds. |
-| `micro_kobo` / `cumulative_micro_kobo` | The calculated interest for one day / the running total, kept in micro-kobo. |
-| `recognized_kobo` | The running interest total rounded to whole kobo. The next ledger entry posts only the increase from the previous total. |
-| Half-even rounding | Round to the nearest whole value. At exactly half, choose the even value: 2.5 becomes 2; 3.5 becomes 4. This reduces repeated rounding bias. |
+| Term or field                          | What it means and what it affects                                                                                                                                                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| NGN / naira / kobo                     | NGN is the currency code for Nigerian naira. ₦1 is 100 kobo. Ajo records money in whole kobo.                                                                                                                                                    |
+| Integer money                          | Money stored as a whole number of kobo. ₦1,500 is `150000`, not `1500.00`. This avoids errors from decimal computer maths.                                                                                                                       |
+| Money string                           | An amount sent as text, such as `"150000"`. It still means 150,000 kobo, or ₦1,500. `Money` serializes amounts this way.                                                                                                                         |
+| Principal                              | In savings, the original money put into the plan, before interest. In a withdrawal, the amount to send to the bank, before the processing fee. In reversal accounting, it means the original customer value being recovered, separate from fees. |
+| Rate                                   | A percentage used in a calculation. Check what it applies to: an annual interest rate applies to savings principal; a withholding rate applies to interest.                                                                                      |
+| Basis point / bp                       | One hundredth of one percentage point. `1 bp = 0.01%`, `100 bp = 1%`, and `1000 bp = 10%`. Divide basis points by 10,000 to get the multiplier.                                                                                                  |
+| `annual_rate_bp`                       | The yearly savings rate in basis points. `1200` means 12% per year. It does not mean a 12% return over every plan term.                                                                                                                          |
+| Percentage point                       | The difference between two percentages. A change from 10% to 12% is 2 percentage points, or 200 basis points.                                                                                                                                    |
+| Interest                               | Money earned on the saved principal. Ajo records earned interest separately from principal.                                                                                                                                                      |
+| Simple interest                        | Interest calculated using the original principal. Earned interest does not itself earn interest. Products can alternatively select daily or 30-day compounding.                                                                                  |
+| Actual/365                             | Use the actual number of eligible saving days, with 365 as the yearly divisor, including in a leap year.                                                                                                                                         |
+| Gross interest                         | Interest before forfeiture and withholding.                                                                                                                                                                                                      |
+| Withholding / `withholding_bp`         | The part taken from retained interest after forfeiture at settlement. With `1000` bp, ₦1,000 gross interest gives ₦100 withholding and ₦900 net interest. This is an app setting, not a statement of tax law.                                    |
+| Net interest                           | Gross interest minus forfeiture and withholding. It does not include the returned principal.                                                                                                                                                     |
+| Gross / net                            | Gross means before the relevant deduction; net means after it. Check the context: deposit net value and net interest are different amounts.                                                                                                      |
+| Micro-kobo                             | A millionth of one kobo. Savings calculations keep these small fractions so they can accumulate before whole-kobo posting. These are not separately spendable funds.                                                                             |
+| `micro_kobo` / `cumulative_micro_kobo` | The calculated interest for one day / the running total, kept in micro-kobo.                                                                                                                                                                     |
+| `recognized_kobo`                      | The running interest total rounded to whole kobo. The next ledger entry posts only the increase from the previous total.                                                                                                                         |
+| Half-even rounding                     | Round to the nearest whole value. At exactly half, choose the even value: 2.5 becomes 2; 3.5 becomes 4. This reduces repeated rounding bias.                                                                                                     |
 
 Example: ₦100,000 at 12% yearly simple interest for 30 eligible days gives about ₦986.30 gross interest: `100,000 × 0.12 × 30 ÷ 365`. The app keeps smaller fractions during daily calculations and rounds to whole kobo when recording money.
 
@@ -49,60 +49,60 @@ Example: ₦100,000 at 12% yearly simple interest for 30 eligible days gives abo
 
 Sources: [ledger](../app/Support/Ledger.php), [wallets](../app/Support/Wallets.php), and [financial transactions](../app/Support/FinancialTransaction.php).
 
-| Term or field | What it means and what it interacts with |
-| --- | --- |
-| Wallet | The customer's available money inside Ajo. Funding a savings plan or reserving a withdrawal moves money out of the available wallet. |
-| Ledger | The permanent money record. Balances come from its entries rather than a freely editable balance field. |
-| Ledger account | A named place in the ledger for one kind of money, such as a customer's wallet, plan principal, or recovery debt. It is not necessarily a bank account. |
-| Journal | One complete recorded money movement, made up of at least two ledger entries. |
-| Ledger entry | One line of a journal that changes one ledger account. |
-| Double-entry / balanced journal | Every movement has matching sides. All signed amounts in one journal must add up to zero. |
-| Debit / credit | The two sides of accounting. Ajo uses positive signed entries for debits and negative ones for credits. They do not always mean money leaving or entering the customer's wallet. |
-| Liability | Money Ajo owes. Customer wallet balances and saved principal are liabilities from Ajo's point of view. A raw negative wallet ledger balance represents money owed to the customer; the customer sees a positive available amount. |
-| Asset / receivable | Money held by, or owed to, Ajo. A recovery receivable records customer debt separately from the wallet. |
-| House account | An internal Ajo ledger account, such as interest expense, gateway cash, or tax payable. |
-| Clearing account | A temporary place for money moving between stages. `clearing:payouts_in_transit` holds withdrawal reservations while payout is being handled. |
-| Posting | Adding a journal and its entries to the ledger. |
-| `effective_date` | The business date a money movement belongs to. It can differ from when the app actually recorded it. |
-| `posted_at` | When the app recorded the money movement or related evidence. |
-| Ledger reversal / `reverses_id` | A new journal that exactly offsets a linked original journal. The original record remains in place. |
-| Append-only / immutable | Add new evidence instead of rewriting old financial evidence. Corrections use new linked records. |
-| Atomic transaction | A group of database changes that all succeed together or all roll back. This prevents half-finished money operations. |
-| Lock / concurrency | A lock limits competing work on the same records. Concurrency means multiple operations are happening at the same time. These controls help prevent the same available money being spent twice. |
-| Idempotency / `operation_key` | Repeating the same operation should not move money twice. A journal's operation key identifies that operation; a repeat with changed details is rejected. |
-| Fingerprint | A short calculated summary of data, used to compare it with earlier data. Ledger fingerprints help detect changed details on a repeated operation. |
+| Term or field                   | What it means and what it interacts with                                                                                                                                                                                          |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wallet                          | The customer's available money inside Ajo. Funding a savings plan or reserving a withdrawal moves money out of the available wallet.                                                                                              |
+| Ledger                          | The permanent money record. Balances come from its entries rather than a freely editable balance field.                                                                                                                           |
+| Ledger account                  | A named place in the ledger for one kind of money, such as a customer's wallet, plan principal, or recovery debt. It is not necessarily a bank account.                                                                           |
+| Journal                         | One complete recorded money movement, made up of at least two ledger entries.                                                                                                                                                     |
+| Ledger entry                    | One line of a journal that changes one ledger account.                                                                                                                                                                            |
+| Double-entry / balanced journal | Every movement has matching sides. All signed amounts in one journal must add up to zero.                                                                                                                                         |
+| Debit / credit                  | The two sides of accounting. Ajo uses positive signed entries for debits and negative ones for credits. They do not always mean money leaving or entering the customer's wallet.                                                  |
+| Liability                       | Money Ajo owes. Customer wallet balances and saved principal are liabilities from Ajo's point of view. A raw negative wallet ledger balance represents money owed to the customer; the customer sees a positive available amount. |
+| Asset / receivable              | Money held by, or owed to, Ajo. A recovery receivable records customer debt separately from the wallet.                                                                                                                           |
+| House account                   | An internal Ajo ledger account, such as interest expense, gateway cash, or tax payable.                                                                                                                                           |
+| Clearing account                | A temporary place for money moving between stages. `clearing:payouts_in_transit` holds withdrawal reservations while payout is being handled.                                                                                     |
+| Posting                         | Adding a journal and its entries to the ledger.                                                                                                                                                                                   |
+| `effective_date`                | The business date a money movement belongs to. It can differ from when the app actually recorded it.                                                                                                                              |
+| `posted_at`                     | When the app recorded the money movement or related evidence.                                                                                                                                                                     |
+| Ledger reversal / `reverses_id` | A new journal that exactly offsets a linked original journal. The original record remains in place.                                                                                                                               |
+| Append-only / immutable         | Add new evidence instead of rewriting old financial evidence. Corrections use new linked records.                                                                                                                                 |
+| Atomic transaction              | A group of database changes that all succeed together or all roll back. This prevents half-finished money operations.                                                                                                             |
+| Lock / concurrency              | A lock limits competing work on the same records. Concurrency means multiple operations are happening at the same time. These controls help prevent the same available money being spent twice.                                   |
+| Idempotency / `operation_key`   | Repeating the same operation should not move money twice. A journal's operation key identifies that operation; a repeat with changed details is rejected.                                                                         |
+| Fingerprint                     | A short calculated summary of data, used to compare it with earlier data. Ledger fingerprints help detect changed details on a repeated operation.                                                                                |
 
 ## Savings
 
 Sources: [products](../app/Support/SavingsProducts.php), [plans](../app/Support/SavingsPlans.php), [accrual](../app/Support/SavingsAccrual.php), and [processing](../app/Support/SavingsProcessing.php).
 
-| Term or field | What it means and what it interacts with |
-| --- | --- |
-| Savings product | An offer customers can choose, with allowed amounts, saving periods, and rates. |
-| Product version | A published set of product rules. Updating an offer creates another version. |
-| Savings plan | One customer's savings arrangement, created using an offered product version and selected term. |
-| Contract | The plan's saved rules, including principal, rate, duration, and withholding. Later product edits do not change an existing contract. |
-| `minimum` / `maximum` | The smallest and largest principal allowed by that product, in kobo. |
-| Term / `days` | How long the savings runs. Current offered terms use positive multiples of 30 days. Thirty days does not mean a calendar month. |
-| `terms` | The product's list of offered durations and their annual rates. |
-| Funding | Moving the complete principal from the wallet into the plan once. Current plans do not accept partial funding or top-ups. |
-| `funding_deadline` | The last allowed time to fund the plan. `savings.funding_hours` supplies the window when the plan is created. |
-| `funded_at` | When the plan received its principal. |
-| Accrual | Calculating and recording the interest earned for an eligible completed day. |
-| `accrual_starts_at` | The next midnight in the configured application timezone after funding. The first partial day does not earn interest. |
-| Maturity / `matures_at` | The point when the agreed saving period ends and settlement becomes due. |
-| Settlement | Closing out the plan's principal and interest, taking withholding, repaying recovery debt if needed, and crediting the wallet with the remainder. |
-| `wallet_credit` | The amount that actually reaches the wallet after settlement deductions and debt repayment. |
-| `draft` / `pending_funding` | Plan stages before successful funding. |
-| `active` | The plan is funded and running. |
-| `suspended` / hold | A paused plan. Eligible days can still accrue, but settlement is blocked until release. |
-| `matured` / `closed` | The plan has reached its end / its lifecycle has finished. Ordinary maturity settlement closes the plan with `closure_reason = matured_withdrawal`. |
-| `cancelled` | An unfunded plan ended without becoming an active saving arrangement. |
-| Savings exception | A stored problem needing investigation, such as changed accrual evidence. An unresolved exception blocks further accrual and settlement. |
-| `next_process_at` | When the background savings processor should next consider the plan. It is not a replacement for the contractual maturity date. |
-| Compounding | Adding interest to the amount that earns future interest. Products support daily or every-30-day capitalization, preserving fractional carry and settling directly at a maturity boundary. |
+| Term or field                  | What it means and what it interacts with                                                                                                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Savings product                | An offer customers can choose, with allowed amounts, saving periods, and rates.                                                                                                                                |
+| Product version                | A published set of product rules. Updating an offer creates another version.                                                                                                                                   |
+| Savings plan                   | One customer's savings arrangement, created using an offered product version and selected term.                                                                                                                |
+| Contract                       | The plan's saved rules, including principal, rate, duration, and withholding. Later product edits do not change an existing contract.                                                                          |
+| `minimum` / `maximum`          | The smallest and largest principal allowed by that product, in kobo.                                                                                                                                           |
+| Term / `days`                  | How long the savings runs. Current offered terms use positive multiples of 30 days. Thirty days does not mean a calendar month.                                                                                |
+| `terms`                        | The product's list of offered durations and their annual rates.                                                                                                                                                |
+| Funding                        | Moving the complete principal from the wallet into the plan once. Current plans do not accept partial funding or top-ups.                                                                                      |
+| `funding_deadline`             | The last allowed time to fund the plan. `savings.funding_hours` supplies the window when the plan is created.                                                                                                  |
+| `funded_at`                    | When the plan received its principal.                                                                                                                                                                          |
+| Accrual                        | Calculating and recording the interest earned for an eligible completed day.                                                                                                                                   |
+| `accrual_starts_at`            | The next midnight in the configured application timezone after funding. The first partial day does not earn interest.                                                                                          |
+| Maturity / `matures_at`        | The point when the agreed saving period ends and settlement becomes due.                                                                                                                                       |
+| Settlement                     | Closing out the plan's principal and interest, taking withholding, repaying recovery debt if needed, and crediting the wallet with the remainder.                                                              |
+| `wallet_credit`                | The amount that actually reaches the wallet after settlement deductions and debt repayment.                                                                                                                    |
+| `draft` / `pending_funding`    | Plan stages before successful funding.                                                                                                                                                                         |
+| `active`                       | The plan is funded and running.                                                                                                                                                                                |
+| `suspended` / hold             | A paused plan. Eligible days can still accrue, but settlement is blocked until release.                                                                                                                        |
+| `matured` / `closed`           | The plan has reached its end / its lifecycle has finished. Ordinary maturity settlement closes the plan with `closure_reason = matured_withdrawal`.                                                            |
+| `cancelled`                    | An unfunded plan ended without becoming an active saving arrangement.                                                                                                                                          |
+| Savings exception              | A stored problem needing investigation, such as changed accrual evidence. An unresolved exception blocks further accrual and settlement.                                                                       |
+| `next_process_at`              | When the background savings processor should next consider the plan. It is not a replacement for the contractual maturity date.                                                                                |
+| Compounding                    | Adding interest to the amount that earns future interest. Products support daily or every-30-day capitalization, preserving fractional carry and settling directly at a maturity boundary.                     |
 | Early termination / forfeiture | Ending funded savings before maturity / giving up some interest under exit rules. Terminable contracts permit full early closure after their minimum holding period; forfeiture includes capitalized interest. |
-| Rollover | Starting a new saving period using proceeds from an ending plan. It requires a pre-maturity election and consent to terms effective at maturity; ineligible renewals fall back to wallet settlement. |
+| Rollover                       | Starting a new saving period using proceeds from an ending plan. It requires a pre-maturity election and consent to terms effective at maturity; ineligible renewals fall back to wallet settlement.           |
 
 Calculation preparation stores a contract fingerprint and resumable checkpoints before funding. `preparationStatus` is `preparing`, `ready`, or `failed`. New plans and renewals initialize it transactionally. Legacy development records or imports that bypass preparation can remain blocked from UI funding.
 
@@ -112,109 +112,109 @@ Calculation preparation stores a contract fingerprint and resumable checkpoints 
 
 Sources: [deposits](../app/Support/Deposits.php), [withdrawals](../app/Support/Withdrawals.php), [gateway routing](../app/Support/PaymentGateways.php), [payment inbox](../app/Support/PaymentInbox.php), [monitoring](../app/Support/PaymentMonitoring.php), and [recovery controls](../app/Support/RecoveryControls.php).
 
-| Term or field | What it means and what it interacts with |
-| --- | --- |
-| Deposit | Money coming into Ajo through the payment provider. Verified value may repay debt before any remainder reaches the wallet. |
-| `requested_net` | The deposit value requested after processing fees, before recovery debt allocation. It is not always the final wallet increase. |
-| Processing fee | The cost of handling a payment. Deposit fees and withdrawal fees have different calculation and verification paths. |
-| Gateway / provider | The service boundary for external payments. Ajo uses the Paystack adapter or the local simulator according to the saved payment origin. |
-| `origin` | Where the payment is handled: `real` uses the Paystack adapter; `simulated` uses local test evidence. `real` does not by itself mean live production money. |
-| Reference | A label used to find and match a payment across Ajo and the provider. It differs from the request key used to recognise a repeated customer action. |
-| Verification | Asking for trusted provider evidence and checking that details match before recording a financial result. A checkout callback alone does not prove payment. |
-| Callback | The browser returning from checkout. It helps the app continue the flow, but is not proof that money arrived. |
-| Webhook | A server-to-server message about a payment event. Ajo checks its signature, stores it, and processes it. |
-| Webhook inbox | Stored incoming payment messages. It lets background jobs recover work after a delay or crash. |
-| Signature | A calculated check made with a secret. It helps prove a message came from a holder of that secret and was not changed. It does not encrypt the message. |
-| Reconciliation | Comparing Ajo's records with provider evidence and following up on missing or uncertain outcomes. |
-| Scan / checkpoint | A background search through provider records / the saved place from which that search can resume. |
-| Payment exception | A stored issue needing staff attention, such as mismatched amounts or overdue processing. It is different from an ordinary pending state. |
-| Deposit states | `initiated`: created; `pending_confirmation`: waiting for evidence; `confirmed`: verified and recognised; `failed`: recorded failure; `reversed`: reversed under verified recovery rules. A later verified success can still confirm a failed deposit once. |
-| Withdrawal / payout | A request to send wallet money to a bank / the external transfer that carries it out. Approval and actual payment are separate stages. |
-| Saved destination | A customer's saved bank payout details. The withdrawal keeps its own copy of the destination used. |
-| Reservation / `reserved_fee` | Money set aside for the withdrawal principal and quoted fee. It is removed from available wallet funds while the payout is handled. |
-| `verified_fee` / `accounted_fee` | The fee supported by provider evidence / the fee already recorded in the ledger. A later difference needs a separate adjustment. |
-| Withdrawal threshold | The saved limit used to choose the approval path. Principal **plus reserved fee**, strictly above the threshold, requires a maker and a different checker. |
-| Withdrawal states | `requested`, `under_review`, `approved`, `queued_for_payout`, `paid`, `failed`, `rejected`, `cancelled`, and `reversed`. Approval does not mean paid; an uncertain provider result needs verification. |
-| Refund / dispute | A provider return of money / a challenge to a payment. An event label alone is not enough evidence to guess a financial debit. |
-| Payment reversal | Taking back value because of a verified provider effect. This can require several accounting steps; it is broader than an exact ledger-journal reversal. |
-| Recovery debt / `reversal_receivable` | Money the customer owes after a verified reversal or fee cannot be fully collected from available funds. It is stored separately so the wallet is not made negative. |
-| Recovery priority | Eligible incoming funds repay debt first. For example, ₦5,000 arriving with ₦2,000 debt leaves ₦3,000 for the wallet. |
-| Recovery restriction | Outstanding debt blocks spending actions such as new savings funding and withdrawals. Existing locked savings are not automatically liquidated. |
-| Write-off | An approved decision to remove some recovery debt and record an Ajo expense. It is not a customer repayment. |
+| Term or field                         | What it means and what it interacts with                                                                                                                                                                                                                    |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deposit                               | Money coming into Ajo through the payment provider. Verified value may repay debt before any remainder reaches the wallet.                                                                                                                                  |
+| `requested_net`                       | The deposit value requested after processing fees, before recovery debt allocation. It is not always the final wallet increase.                                                                                                                             |
+| Processing fee                        | The cost of handling a payment. Deposit fees and withdrawal fees have different calculation and verification paths.                                                                                                                                         |
+| Gateway / provider                    | The service boundary for external payments. Ajo uses the Paystack adapter or the local simulator according to the saved payment origin.                                                                                                                     |
+| `origin`                              | Where the payment is handled: `real` uses the Paystack adapter; `simulated` uses local test evidence. `real` does not by itself mean live production money.                                                                                                 |
+| Reference                             | A label used to find and match a payment across Ajo and the provider. It differs from the request key used to recognise a repeated customer action.                                                                                                         |
+| Verification                          | Asking for trusted provider evidence and checking that details match before recording a financial result. A checkout callback alone does not prove payment.                                                                                                 |
+| Callback                              | The browser returning from checkout. It helps the app continue the flow, but is not proof that money arrived.                                                                                                                                               |
+| Webhook                               | A server-to-server message about a payment event. Ajo checks its signature, stores it, and processes it.                                                                                                                                                    |
+| Webhook inbox                         | Stored incoming payment messages. It lets background jobs recover work after a delay or crash.                                                                                                                                                              |
+| Signature                             | A calculated check made with a secret. It helps prove a message came from a holder of that secret and was not changed. It does not encrypt the message.                                                                                                     |
+| Reconciliation                        | Comparing Ajo's records with provider evidence and following up on missing or uncertain outcomes.                                                                                                                                                           |
+| Scan / checkpoint                     | A background search through provider records / the saved place from which that search can resume.                                                                                                                                                           |
+| Payment exception                     | A stored issue needing staff attention, such as mismatched amounts or overdue processing. It is different from an ordinary pending state.                                                                                                                   |
+| Deposit states                        | `initiated`: created; `pending_confirmation`: waiting for evidence; `confirmed`: verified and recognised; `failed`: recorded failure; `reversed`: reversed under verified recovery rules. A later verified success can still confirm a failed deposit once. |
+| Withdrawal / payout                   | A request to send wallet money to a bank / the external transfer that carries it out. Approval and actual payment are separate stages.                                                                                                                      |
+| Saved destination                     | A customer's saved bank payout details. The withdrawal keeps its own copy of the destination used.                                                                                                                                                          |
+| Reservation / `reserved_fee`          | Money set aside for the withdrawal principal and quoted fee. It is removed from available wallet funds while the payout is handled.                                                                                                                         |
+| `verified_fee` / `accounted_fee`      | The fee supported by provider evidence / the fee already recorded in the ledger. A later difference needs a separate adjustment.                                                                                                                            |
+| Withdrawal threshold                  | The saved limit used to choose the approval path. Principal **plus reserved fee**, strictly above the threshold, requires a maker and a different checker.                                                                                                  |
+| Withdrawal states                     | `requested`, `under_review`, `approved`, `queued_for_payout`, `paid`, `failed`, `rejected`, `cancelled`, and `reversed`. Approval does not mean paid; an uncertain provider result needs verification.                                                      |
+| Refund / dispute                      | A provider return of money / a challenge to a payment. An event label alone is not enough evidence to guess a financial debit.                                                                                                                              |
+| Payment reversal                      | Taking back value because of a verified provider effect. This can require several accounting steps; it is broader than an exact ledger-journal reversal.                                                                                                    |
+| Recovery debt / `reversal_receivable` | Money the customer owes after a verified reversal or fee cannot be fully collected from available funds. It is stored separately so the wallet is not made negative.                                                                                        |
+| Recovery priority                     | Eligible incoming funds repay debt first. For example, ₦5,000 arriving with ₦2,000 debt leaves ₦3,000 for the wallet.                                                                                                                                       |
+| Recovery restriction                  | Outstanding debt blocks spending actions such as new savings funding and withdrawals. Existing locked savings are not automatically liquidated.                                                                                                             |
+| Write-off                             | An approved decision to remove some recovery debt and record an Ajo expense. It is not a customer repayment.                                                                                                                                                |
 
 ## Staff controls and audit
 
 Sources: [approvals](../app/Support/Approvals.php), [audit trail](../app/Support/AuditTrail.php), [archives](../app/Support/AuditArchives.php), and [audit config](../config/audit.php).
 
-| Term or field | What it means and what it interacts with |
-| --- | --- |
-| Role / permission | A role groups staff responsibilities; a permission allows a particular action. Approval code also checks that the staff member is active. |
-| Maker-checker | One staff member proposes a controlled action; a different authorised staff member accepts or rejects it. The maker cannot approve their own proposal. |
-| Approval request | The saved proposal, reason, details, expiry, and decision. Approval also checks that the underlying record still matches the proposal. |
-| Audit / audit event | Evidence of an action: who acted, what happened, what record was involved, and when. Audit evidence explains actions; the ledger records money movements. |
-| Actor / causer | The customer, staff member, or system responsible for an action. |
-| Subject | The record the action concerns, such as a plan or approval request. |
-| Correlation / `operation_key` | A label that helps connect related evidence. Audit records in the same HTTP request share a correlation value. |
-| Redaction | Removing secrets or masking sensitive details before saving audit data. Bank account numbers are masked to their last four characters. |
-| Hash | A calculated summary of data. Changing the data changes the expected hash. A hash is not encrypted text that can later be decoded. |
-| HMAC | A hash check made using a secret key. Ajo uses it to sign audit evidence and check webhook signatures. |
+| Term or field                 | What it means and what it interacts with                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Role / permission             | A role groups staff responsibilities; a permission allows a particular action. Approval code also checks that the staff member is active.                    |
+| Maker-checker                 | One staff member proposes a controlled action; a different authorised staff member accepts or rejects it. The maker cannot approve their own proposal.       |
+| Approval request              | The saved proposal, reason, details, expiry, and decision. Approval also checks that the underlying record still matches the proposal.                       |
+| Audit / audit event           | Evidence of an action: who acted, what happened, what record was involved, and when. Audit evidence explains actions; the ledger records money movements.    |
+| Actor / causer                | The customer, staff member, or system responsible for an action.                                                                                             |
+| Subject                       | The record the action concerns, such as a plan or approval request.                                                                                          |
+| Correlation / `operation_key` | A label that helps connect related evidence. Audit records in the same HTTP request share a correlation value.                                               |
+| Redaction                     | Removing secrets or masking sensitive details before saving audit data. Bank account numbers are masked to their last four characters.                       |
+| Hash                          | A calculated summary of data. Changing the data changes the expected hash. A hash is not encrypted text that can later be decoded.                           |
+| HMAC                          | A hash check made using a secret key. Ajo uses it to sign audit evidence and check webhook signatures.                                                       |
 | Audit chain / `previous_hash` | Each audit event includes the previous event's hash in its signed calculation. Verification checks sequence and links to detect missing or changed evidence. |
-| `audit_head` | The saved latest sequence and hash, plus the boundary between archived and online evidence. Verification checks these against retained evidence. |
-| `key_version` | The name of the audit signing key used for an event or archive seal. It lets verification find the right key. |
-| Canonical data | Data written in a consistent order before hashing. This avoids a different hash just because object keys arrived in another order. |
-| Audit archive | Older audit events saved in encrypted files, with signed records describing their boundaries and file hashes. |
-| Manifest / seal | A record describing an archive file / the keyed check that protects that record from changes. |
-| Retention / purge | How long evidence is kept / removing archive files after their retention period. Signed boundary records remain for continuity checks. |
-| Encryption | Turning readable data into protected data that needs a key to read again. Archive encryption and audit signing serve different purposes. |
+| `audit_head`                  | The saved latest sequence and hash, plus the boundary between archived and online evidence. Verification checks these against retained evidence.             |
+| `key_version`                 | The name of the audit signing key used for an event or archive seal. It lets verification find the right key.                                                |
+| Canonical data                | Data written in a consistent order before hashing. This avoids a different hash just because object keys arrived in another order.                           |
+| Audit archive                 | Older audit events saved in encrypted files, with signed records describing their boundaries and file hashes.                                                |
+| Manifest / seal               | A record describing an archive file / the keyed check that protects that record from changes.                                                                |
+| Retention / purge             | How long evidence is kept / removing archive files after their retention period. Signed boundary records remain for continuity checks.                       |
+| Encryption                    | Turning readable data into protected data that needs a key to read again. Archive encryption and audit signing serve different purposes.                     |
 
 ## Important environment variables and config keys
 
 These names describe settings, not the private values used by a running installation. The defaults below come from committed config. They may change through configuration or saved contract snapshots.
 
-| Name | What it does and what uses it |
-| --- | --- |
-| `AUDIT_CHAIN_KEY` | Dedicated secret used by `AuditTrail` and `AuditArchives` for HMAC-SHA256 checks. It must be at least 32 bytes. It maps to `audit.keys.v1` and is separate from `APP_KEY`. Historical evidence still needs the key version that signed it. See [audit config](../config/audit.php). |
-| `audit.key_version` / `audit.keys` | Select the signing-key version for new evidence / map version names to keys for signing and verification. The current version is `v1`. |
-| `audit.online_days` | How long audit events stay online before archive maintenance moves them to files. Current default: 365 days. |
-| `audit.retention_years` / `audit.archive_disk` | Archive retention period / storage location. Current defaults: 7 years and the `local` disk. |
-| `APP_KEY` | Laravel's encryption secret. It protects encrypted app data, including webhook payloads and audit archive contents. It does not replace the audit signing key. See [app config](../config/app.php). |
-| `PAYSTACK_SECRET_KEY` | Server credential for the Paystack adapter. Also checks legacy webhook signatures. The current payment inbox requires a test secret in legacy mode. See [payment config](../config/payments.php) and [gateway](../app/Support/PaystackGateway.php). |
-| `PAYSTACK_WEBHOOK_MODE` | Chooses the signature format: `legacy` or `timestamped`. Default: `legacy`. See [payment inbox](../app/Support/PaymentInbox.php). |
-| `PAYSTACK_WEBHOOK_SIGNING_SECRET` | Separate webhook secret used in timestamped mode. That mode checks both the signature and a 300-second time tolerance. |
-| `PAYSTACK_APPROVAL_TOKEN` | Shared secret checked by the transfer approval callback. It is separate from the staff maker-checker decision. See [approval controller](../app/Http/Controllers/TransferApprovalController.php) and [withdrawal config](../config/withdrawals.php). |
-| `PAYMENT_SIMULATION_ENABLED` | Enables the payment simulator only alongside its other checks: an admin actor and a `local` or `testing` environment. Default: false. See [simulator](../app/Support/PaymentSimulator.php). |
-| `SIMULATOR_SIGNING_KEY` | Secret used to sign and check simulated webhook evidence. It is separate from Paystack credentials. See [simulator](../app/Support/PaymentSimulator.php) and [payment inbox](../app/Support/PaymentInbox.php). |
-| `savings.withholding_bp` | Default withholding rate supplied for products. Current default: `1000`, meaning 10%. Each contract keeps its own copy. See [savings config](../config/savings.php). |
-| `savings.funding_hours` | Funding window used when creating a plan. Current default: 24 hours. |
-| `savings.preparation_steps` | Maximum calculation-preparation steps per invocation; default 1,000. Durable checkpoints allow later work to resume. |
-| `savings.waiver_hours` | Approved waiver validity; default 24 hours from approval. |
-| `savings.processing_days` | Bounds the number of accrual days handled in a processing pass. It is not the customer's selected term. See [savings processor](../app/Support/SavingsProcessing.php). |
-| `withdrawals.threshold` | Default approval-path limit, snapshotted on a withdrawal. Current default: `10000000` kobo, or ₦100,000. The comparison includes the quoted fee. |
-| `withdrawals.fee_tiers` | Amount ceilings and their quoted withdrawal fees, all in kobo. This is separate from the final verified provider fee. |
-| `withdrawals.review_hours` / `withdrawals.approval_hours` | Time allowed for withdrawal review / the default expiry window for approval proposals. Current defaults: 24 hours each. Withdrawal proposals use the withdrawal's own expiry. |
-| `payments.minimum_net` / `payments.maximum_net` | Allowed requested net deposit range in kobo. These do not define savings-product limits. |
-| `payments.claim_seconds` | How long a worker's processing claim lasts. Claim tokens stop a stale worker from completing work under a newer claim. |
-| `payments.provider_budget` | Limits provider requests within a time window. It is separate from customer endpoint rate limits. |
-| `payments.notification_retry_minutes` | Time between retries of due payment notices. Retrying a notice does not repeat the money movement. |
-| `ledger.lock_store` / `ledger.lock_seconds` | Store and lifetime used for financial locks. Current defaults: Redis and 30 seconds. See [ledger config](../config/ledger.php). |
-| `QUEUE_CONNECTION` / `CACHE_STORE` | Choose where background jobs / cached data are stored. The example environment uses Redis for both. See [queue config](../config/queue.php) and [cache config](../config/cache.php). |
-| `MAIL_MAILER` | Selects how email is delivered. With `log`, messages are written to logs rather than sent to a real inbox. See [mail config](../config/mail.php). |
+| Name                                                      | What it does and what uses it                                                                                                                                                                                                                                                       |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUDIT_CHAIN_KEY`                                         | Dedicated secret used by `AuditTrail` and `AuditArchives` for HMAC-SHA256 checks. It must be at least 32 bytes. It maps to `audit.keys.v1` and is separate from `APP_KEY`. Historical evidence still needs the key version that signed it. See [audit config](../config/audit.php). |
+| `audit.key_version` / `audit.keys`                        | Select the signing-key version for new evidence / map version names to keys for signing and verification. The current version is `v1`.                                                                                                                                              |
+| `audit.online_days`                                       | How long audit events stay online before archive maintenance moves them to files. Current default: 365 days.                                                                                                                                                                        |
+| `audit.retention_years` / `audit.archive_disk`            | Archive retention period / storage location. Current defaults: 7 years and the `local` disk.                                                                                                                                                                                        |
+| `APP_KEY`                                                 | Laravel's encryption secret. It protects encrypted app data, including webhook payloads and audit archive contents. It does not replace the audit signing key. See [app config](../config/app.php).                                                                                 |
+| `PAYSTACK_SECRET_KEY`                                     | Server credential for the Paystack adapter. Also checks legacy webhook signatures. The current payment inbox requires a test secret in legacy mode. See [payment config](../config/payments.php) and [gateway](../app/Support/PaystackGateway.php).                                 |
+| `PAYSTACK_WEBHOOK_MODE`                                   | Chooses the signature format: `legacy` or `timestamped`. Default: `legacy`. See [payment inbox](../app/Support/PaymentInbox.php).                                                                                                                                                   |
+| `PAYSTACK_WEBHOOK_SIGNING_SECRET`                         | Separate webhook secret used in timestamped mode. That mode checks both the signature and a 300-second time tolerance.                                                                                                                                                              |
+| `PAYSTACK_APPROVAL_TOKEN`                                 | Shared secret checked by the transfer approval callback. It is separate from the staff maker-checker decision. See [approval controller](../app/Http/Controllers/TransferApprovalController.php) and [withdrawal config](../config/withdrawals.php).                                |
+| `PAYMENT_SIMULATION_ENABLED`                              | Enables the payment simulator only alongside its other checks: an admin actor and a `local` or `testing` environment. Default: false. See [simulator](../app/Support/PaymentSimulator.php).                                                                                         |
+| `SIMULATOR_SIGNING_KEY`                                   | Secret used to sign and check simulated webhook evidence. It is separate from Paystack credentials. See [simulator](../app/Support/PaymentSimulator.php) and [payment inbox](../app/Support/PaymentInbox.php).                                                                      |
+| `savings.withholding_bp`                                  | Default withholding rate supplied for products. Current default: `1000`, meaning 10%. Each contract keeps its own copy. See [savings config](../config/savings.php).                                                                                                                |
+| `savings.funding_hours`                                   | Funding window used when creating a plan. Current default: 24 hours.                                                                                                                                                                                                                |
+| `savings.preparation_steps`                               | Maximum calculation-preparation steps per invocation; default 1,000. Durable checkpoints allow later work to resume.                                                                                                                                                                |
+| `savings.waiver_hours`                                    | Approved waiver validity; default 24 hours from approval.                                                                                                                                                                                                                           |
+| `savings.processing_days`                                 | Bounds the number of accrual days handled in a processing pass. It is not the customer's selected term. See [savings processor](../app/Support/SavingsProcessing.php).                                                                                                              |
+| `withdrawals.threshold`                                   | Default approval-path limit, snapshotted on a withdrawal. Current default: `10000000` kobo, or ₦100,000. The comparison includes the quoted fee.                                                                                                                                    |
+| `withdrawals.fee_tiers`                                   | Amount ceilings and their quoted withdrawal fees, all in kobo. This is separate from the final verified provider fee.                                                                                                                                                               |
+| `withdrawals.review_hours` / `withdrawals.approval_hours` | Time allowed for withdrawal review / the default expiry window for approval proposals. Current defaults: 24 hours each. Withdrawal proposals use the withdrawal's own expiry.                                                                                                       |
+| `payments.minimum_net` / `payments.maximum_net`           | Allowed requested net deposit range in kobo. These do not define savings-product limits.                                                                                                                                                                                            |
+| `payments.claim_seconds`                                  | How long a worker's processing claim lasts. Claim tokens stop a stale worker from completing work under a newer claim.                                                                                                                                                              |
+| `payments.provider_budget`                                | Limits provider requests within a time window. It is separate from customer endpoint rate limits.                                                                                                                                                                                   |
+| `payments.notification_retry_minutes`                     | Time between retries of due payment notices. Retrying a notice does not repeat the money movement.                                                                                                                                                                                  |
+| `ledger.lock_store` / `ledger.lock_seconds`               | Store and lifetime used for financial locks. Current defaults: Redis and 30 seconds. See [ledger config](../config/ledger.php).                                                                                                                                                     |
+| `QUEUE_CONNECTION` / `CACHE_STORE`                        | Choose where background jobs / cached data are stored. The example environment uses Redis for both. See [queue config](../config/queue.php) and [cache config](../config/cache.php).                                                                                                |
+| `MAIL_MAILER`                                             | Selects how email is delivered. With `log`, messages are written to logs rather than sent to a real inbox. See [mail config](../config/mail.php).                                                                                                                                   |
 
 ## Background work and time
 
 Sources: [schedule](../routes/console.php), [Horizon config](../config/horizon.php), [financial transactions](../app/Support/FinancialTransaction.php), [payment notices](../app/Support/PaymentNotices.php), and [clock](../app/Contracts/Clock.php).
 
-| Term | Simple meaning |
-| --- | --- |
-| Application time | The timezone configured in `config/app.php`, used for savings days and economic dates. Timestamp displays may convert to the viewer’s local timezone; calendar dates remain application dates. |
-| Clock | The app's source of the current time. A frozen clock lets tests check deadlines without waiting for real time to pass. |
-| Scheduler | Starts recurring work when it is due, such as payment recovery or daily savings processing. |
-| Job / queue / worker | One background task / the waiting list of tasks / the process that runs them. Scheduling a job does not mean it has finished. |
-| Horizon | The app's Redis queue worker manager and monitoring interface. Named queues separate ordinary work, webhooks, accrual, and payouts. |
-| Retry / backfill | Trying unfinished work again / processing missed earlier work. Savings backfill must process eligible days in order. |
-| Durable evidence | Evidence saved in the database so it survives a worker crash. Inbox, notice, and scan records help unfinished work resume. |
-| Notice intent | A saved instruction to notify the customer. Delivery can retry independently of the financial result. |
-| At-least-once delivery | A message may be delivered more than once if a crash happens after sending but before recording success. This does not permit duplicate ledger posting. |
-| Polling | The page asks the server for fresh status at intervals while an operation is pending. |
+| Term                   | Simple meaning                                                                                                                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Application time       | The timezone configured in `config/app.php`, used for savings days and economic dates. Timestamp displays may convert to the viewer’s local timezone; calendar dates remain application dates. |
+| Clock                  | The app's source of the current time. A frozen clock lets tests check deadlines without waiting for real time to pass.                                                                         |
+| Scheduler              | Starts recurring work when it is due, such as payment recovery or daily savings processing.                                                                                                    |
+| Job / queue / worker   | One background task / the waiting list of tasks / the process that runs them. Scheduling a job does not mean it has finished.                                                                  |
+| Horizon                | The app's Redis queue worker manager and monitoring interface. Named queues separate ordinary work, webhooks, accrual, and payouts.                                                            |
+| Retry / backfill       | Trying unfinished work again / processing missed earlier work. Savings backfill must process eligible days in order.                                                                           |
+| Durable evidence       | Evidence saved in the database so it survives a worker crash. Inbox, notice, and scan records help unfinished work resume.                                                                     |
+| Notice intent          | A saved instruction to notify the customer. Delivery can retry independently of the financial result.                                                                                          |
+| At-least-once delivery | A message may be delivered more than once if a crash happens after sending but before recording success. This does not permit duplicate ledger posting.                                        |
+| Polling                | The page asks the server for fresh status at intervals while an operation is pending.                                                                                                          |
 
 When adding a new term, explain its unit, what changes it, and what it affects. If it has different meanings in different parts of the app, explain each meaning and link to the code that uses it.

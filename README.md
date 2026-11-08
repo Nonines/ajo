@@ -93,13 +93,13 @@ Controllers handle HTTP access and responses. Form requests validate customer in
 
 Key stored links:
 
-| Records | Connection |
-| --- | --- |
-| `User` → `Deposit`, `WithdrawalRequest`, `SavingsPlan`, `LedgerAccount` | `user_id` identifies the customer whose value or contract is recorded. |
-| `WithdrawalRequest` → `SavedDestination` | `saved_destination_id` links the saved account; the request also keeps its own destination and fee snapshot. |
-| `SavingsProduct` → `SavingsProductVersion` → `SavingsPlan` | Versioned terms and the plan's contract copy preserve the agreement when products change. |
-| `Journal` → `LedgerEntry` → `LedgerAccount` | Entries link each posting to its journal and account; financial records retain journal IDs as evidence. |
-| `ApprovalRequest` → action subject and `Staff` | `subject_type`/`subject_id` identify the target; `requested_by` and `decided_by` identify the separate staff actors. |
+| Records                                                                 | Connection                                                                                                           |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `User` → `Deposit`, `WithdrawalRequest`, `SavingsPlan`, `LedgerAccount` | `user_id` identifies the customer whose value or contract is recorded.                                               |
+| `WithdrawalRequest` → `SavedDestination`                                | `saved_destination_id` links the saved account; the request also keeps its own destination and fee snapshot.         |
+| `SavingsProduct` → `SavingsProductVersion` → `SavingsPlan`              | Versioned terms and the plan's contract copy preserve the agreement when products change.                            |
+| `Journal` → `LedgerEntry` → `LedgerAccount`                             | Entries link each posting to its journal and account; financial records retain journal IDs as evidence.              |
+| `ApprovalRequest` → action subject and `Staff`                          | `subject_type`/`subject_id` identify the target; `requested_by` and `decided_by` identify the separate staff actors. |
 
 ## Money, ledger, and wallets
 
