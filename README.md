@@ -2,11 +2,11 @@
 
 Ajo is a portfolio project for a fictional NGN savings platform, focused on financial correctness, reliable interest accrual, and accountable operations.
 
-**Planned next:** Paystack test-mode payments, fixed-term savings, compounding, early-exit penalties, rollover, staff approvals, and a tamper-evident audit trail.
+**Delivery scope:** The financial capabilities listed below are implemented in code. Real Paystack test-mode acceptance and deployment verification remain separate checks; production payments and later delivery slices remain outside scope.
 
 **Stack:** PHP 8.5, Laravel 13, Inertia 3, Svelte 5, Filament 5, SQLite, and Redis/Horizon.
 
-**Implemented:** customer authentication, isolated staff panels with mandatory MFA, role permissions, injectable clocks, branded interfaces, Redis/Horizon infrastructure, exact NGN money values, an immutable double-entry ledger, and customer wallets with balances and transaction history.
+**Implemented:** customer authentication, isolated staff panels with mandatory MFA, role permissions, injectable clocks, branded interfaces, Redis/Horizon infrastructure, exact NGN money values, an immutable double-entry ledger, customer wallets with balances and transaction history, test-mode deposits and withdrawals, recovery and staff approvals, a tamper-evident audit trail, and fixed-term savings with compounding, early closure, waivers, and rollover.
 
 ## Directory structure
 
@@ -45,7 +45,7 @@ flowchart LR
     Horizon["Horizon workers"] <--> Redis
 ```
 
-SQLite stores application data, including ledger accounts, journals, and entries. Redis provides caching, locks, and queues through Predis; local development uses native Valkey, while CI uses Redis. Financial writes use customer locks and SQLite `IMMEDIATE` transactions with bounded retries for database contention. Redis/Valkey is required for wallet provisioning during registration. Horizon reserves separate capacity for `default`, `webhooks`, `accrual`, and `payouts`; financial jobs will arrive with their respective features.
+SQLite stores application data, including ledger accounts, journals, and entries. Redis provides caching, locks, and queues through Predis; local development uses native Valkey, while CI uses Redis. Financial writes use customer locks and SQLite `IMMEDIATE` transactions with bounded retries for database contention. Redis/Valkey is required for wallet provisioning during registration. Horizon reserves separate capacity for `default`, `webhooks`, `accrual`, and `payouts`; payment, savings, and payout jobs use these queues with durable recovery records.
 
 ## Money, ledger, and wallets
 
@@ -54,9 +54,15 @@ SQLite stores application data, including ledger accounts, journals, and entries
 - Corrections use linked reversing journals, preserving the original history. Economic effective dates are stored separately from UTC posting timestamps.
 - Account balances are rebuildable projections. Posting validates balances against ledger entries and prevents wallet overspending; spending requires an active customer with a verified email.
 - Registration atomically creates the customer and an empty wallet without opening journals. The wallet page shows the authenticated customer's NGN balance and paginated history, including effective dates and posting timestamps.
-- Closing an unused account permanently deletes it and its empty ledger accounts. Customers with financial history are deactivated, retaining their identity and financial records even when their balance is zero.
+- Account closure records an audit event and deactivates the customer, retaining financial and audit references.
 
-Payment integrations and customer deposit, withdrawal, and savings flows remain planned.
+Deposits and withdrawals verify provider evidence server-side before recognizing financial effects. Savings support simple, daily, and 30-day compounding, customer early termination, approved waivers and administrative closure, and maturity rollover. See [application defaults](docs/application-defaults.md) for settings and [definitions](docs/definitions.md) for terminology.
+
+## Setup
+
+`composer setup` installs dependencies, prepares `.env`, generates the application key, creates the default SQLite file if missing, runs migrations, and builds frontend assets. The file-creation step does not truncate an existing database file. Redis/Valkey and appropriate test-mode credentials are required for the corresponding runtime flows. A custom SQLite path must exist before commands open its connection.
+
+Older development plans created before calculation preparation was introduced may lack a calculation record and remain blocked from UI funding. Current plan creation and renewals prepare that record in the same transaction; future imports must use the same service or preserve that invariant.
 
 ## Ledger maintenance
 
@@ -70,16 +76,18 @@ Run these commands against a migrated database with Redis/Valkey available:
 
 ## Verification
 
-Pest covers exact money values and rounding, immutable and idempotent posting, reversals, projection recovery, wallet access, registration rollback, and account closure:
+Feature tests are grouped under `Audit`, `Auth`, `Infrastructure`, `Integration`, `Ledger`, `Payments`, `Savings`, `Settings`, `Staff`, and `Withdrawals`. Dashboard and example tests remain at the feature root; arithmetic tests remain under `tests/Unit`. Coverage includes financial lifecycles, staff actions, recovery, and seeded sequences across features.
+
+For the ledger and wallet subset:
 
 ```sh
-php artisan test --compact tests/Unit/MoneyTest.php tests/Feature/LedgerTest.php tests/Feature/WalletTest.php
+php artisan test --compact tests/Unit/MoneyTest.php tests/Feature/Ledger/LedgerTest.php tests/Feature/Ledger/WalletTest.php
 ```
 
 Concurrency tests use independent workers, a temporary SQLite database, and a running Redis/Valkey service. They exercise overspending, operation replay, account closure races, expired locks, and database contention:
 
 ```sh
-RUN_REDIS_TESTS=1 php artisan test --compact tests/Feature/LedgerConcurrencyTest.php
+RUN_REDIS_TESTS=1 php artisan test --compact tests/Feature/Ledger/LedgerConcurrencyTest.php
 ```
 
 Run the full suite with `php artisan test --compact`. CI enables Redis integration coverage through `RUN_REDIS_TESTS=1`.
