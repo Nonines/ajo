@@ -56,7 +56,7 @@ SQLite stores application data, including ledger accounts, journals, and entries
 - Registration atomically creates the customer and an empty wallet without opening journals. The wallet page shows the authenticated customer's NGN balance and paginated history, including effective dates and posting timestamps.
 - Account closure records an audit event and deactivates the customer, retaining financial and audit references.
 
-Deposits and withdrawals verify provider evidence server-side before recognizing financial effects. Savings support simple, daily, and 30-day compounding, customer early termination, approved waivers and administrative closure, and maturity rollover. See [application defaults](docs/application-defaults.md) for settings and [definitions](docs/definitions.md) for terminology.
+Deposits and withdrawals verify provider evidence server-side before recognizing financial effects. Savings support simple, daily, and 30-day compounding, customer early termination, approved waivers and administrative closure, and maturity rollover. See [definitions](docs/definitions.md) for terminology.
 
 ## Setup
 
