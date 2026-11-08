@@ -53,7 +53,7 @@ class Ledger
             if ($shortfall > 0) {
                 $entries[] = ['account_id' => $receivable->id, 'amount' => new Money($shortfall)];
             }
-            $journal = $this->write('deposit-reversal:'.$effect->id, $entries, $this->clock->now()->setTimezone('Africa/Lagos')->toDateString(), 'Verified deposit reversal', $deposit->user_id, systemRecovery: true);
+            $journal = $this->write('deposit-reversal:'.$effect->id, $entries, $this->clock->now()->setTimezone(config('app.timezone'))->toDateString(), 'Verified deposit reversal', $deposit->user_id, systemRecovery: true);
             $effect->forceFill(['wallet_collected' => $collected, 'receivable_created' => $shortfall, 'journal_id' => $journal->id])->save();
             app(RecoveryControls::class)->activate($deposit->user_id);
 
@@ -97,7 +97,7 @@ class Ledger
             }
             $revision = $current->fee_revision + 1;
             $this->write('withdrawal:'.$current->id.':fee:'.$revision, $entries,
-                $this->clock->now()->setTimezone('Africa/Lagos')->toDateString(), 'Verified payout processing fee',
+                $this->clock->now()->setTimezone(config('app.timezone'))->toDateString(), 'Verified payout processing fee',
                 $current->user_id, systemRecovery: true);
             $current->forceFill(['accounted_fee' => $fee, 'fee_revision' => $revision])->save();
             if ($fee > $current->reserved_fee) {

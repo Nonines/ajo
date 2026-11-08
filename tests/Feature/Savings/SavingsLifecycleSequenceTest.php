@@ -31,7 +31,7 @@ use Random\Engine\Mt19937;
 use Random\Randomizer;
 
 test('seeded full lifecycle sequences conserve interest principal tax recovery and wallet value after every operation', function (int $seed): void {
-    $clock = new FrozenClock(CarbonImmutable::parse('2028-02-27T23:00:00Z'));
+    $clock = new FrozenClock(CarbonImmutable::parse('2028-02-28T00:00:00Z'));
     app()->instance(Clock::class, $clock);
     $random = new Randomizer(new Mt19937($seed));
     $verify = function (): void {
@@ -91,7 +91,7 @@ test('seeded full lifecycle sequences conserve interest principal tax recovery a
         $plan = $plans[$outcome];
         while (! $run(fn () => app(SavingsAccrual::class)->catchUp($plan))) {
         }
-        $first = $plan->accrual_starts_at->setTimezone('Africa/Lagos')->toDateString();
+        $first = $plan->accrual_starts_at->setTimezone(config('app.timezone'))->toDateString();
         $run(fn () => app(SavingsAccrual::class)->date($plan, $first));
         if ($outcome === 'admin') {
             $approval = $run(fn () => app(Approvals::class)->propose($admin, 'plan.close', $plan,

@@ -162,7 +162,7 @@ test('upgrading populated savings retains legacy snapshots settlements notices a
             ['account_id' => LedgerAccount::where('code', 'customer:'.$plan->user_id.':wallet')->sole()->id, 'amount' => new Money(10000)],
             ['account_id' => app(SavingsPlans::class)->account($plan, 'principal')->id, 'amount' => new Money(-10000)],
         ], '2026-11-07', 'Legacy funding fixture', $plan->user_id);
-        $start = app(Clock::class)->now()->setTimezone('Africa/Lagos')->startOfDay()->addDay();
+        $start = app(Clock::class)->now()->setTimezone(config('app.timezone'))->startOfDay()->addDay();
         $plan->forceFill(['state' => 'active', 'funded_at' => app(Clock::class)->now(), 'accrual_starts_at' => $start,
             'matures_at' => $start->addDays(30), 'funding_journal_id' => $funding->id])->save();
         $contract = DB::table('savings_plans')->where('id', $plan->id)->value('contract');

@@ -16,10 +16,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function (): void {
-    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-27T23:00:00Z')));
+    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-28T00:00:00Z')));
 });
 
-test('daily compounding retains fractions and settles the final boundary without capitalization', function (): void {
+test('daily compounding retains fractions and settles the final boundary without capitalization', function (string $timezone): void {
+    config(['app.timezone' => $timezone]);
+    app(Clock::class)->set(CarbonImmutable::parse('2028-02-28 10:00:00', $timezone));
     Queue::fake([DeliverSavingsNotice::class]);
     $plan = fundedAccrualPlan(10000, 36500, ['interest' => 'daily']);
     app(Clock::class)->set($plan->matures_at);
@@ -32,14 +34,16 @@ test('daily compounding retains fractions and settles the final boundary without
     expect($statement->wallet_credit)->toBe(13130);
     expect($statement->rounding_micro_kobo)->toBe('-490000');
     $this->assertDatabaseCount('plan_capitalizations', 29);
-    $this->assertDatabaseMissing('plan_capitalizations', ['boundary_date' => $plan->matures_at->setTimezone('Africa/Lagos')->toDateString()]);
-    expect(app(SavingsAccrual::class)->date($plan, $plan->accrual_starts_at->setTimezone('Africa/Lagos')->toDateString()))->toBeTrue();
+    $this->assertDatabaseMissing('plan_capitalizations', ['boundary_date' => $plan->matures_at->setTimezone(config('app.timezone'))->toDateString()]);
+    expect(app(SavingsAccrual::class)->date($plan, $plan->accrual_starts_at->setTimezone(config('app.timezone'))->toDateString()))->toBeTrue();
     expect(LedgerAccount::where('code', 'house:interest_expense')->sole()->balance->kobo)->toBe(3478);
     expect(app(Ledger::class)->projectionMismatches())->toBe([]);
     Queue::assertPushed(DeliverSavingsNotice::class, 1);
-});
+})->with(['UTC', 'America/New_York']);
 
-test('thirty day compounding counts from accrual start through a leap date and bounded catchup', function (): void {
+test('thirty day compounding counts from accrual start through a leap date and bounded catchup', function (string $timezone): void {
+    config(['app.timezone' => $timezone]);
+    app(Clock::class)->set(CarbonImmutable::parse('2028-02-28 10:00:00', $timezone));
     Queue::fake([DeliverSavingsNotice::class]);
     $plan = fundedAccrualPlan(1000000, 36500, ['interest' => '30_days', 'days' => 60]);
     app(Clock::class)->set($plan->matures_at);
@@ -59,7 +63,7 @@ test('thirty day compounding counts from accrual start through a leap date and b
     $this->assertDatabaseCount('plan_capitalizations', 1);
     $this->assertDatabaseCount('plan_accruals', 60);
     expect(app(Ledger::class)->projectionMismatches())->toBe([]);
-});
+})->with(['UTC', 'America/New_York']);
 
 test('zero kobo compounding boundaries keep dated evidence without zero ledger entries', function (): void {
     Queue::fake([DeliverSavingsNotice::class]);
@@ -77,7 +81,7 @@ test('zero kobo compounding boundaries keep dated evidence without zero ledger e
 test('capitalization interruption rolls back the dated accrual journal and projections together', function (): void {
     $plan = fundedAccrualPlan(10000, 36500, ['interest' => 'daily']);
     app(Clock::class)->set($plan->accrual_starts_at->addDay());
-    $date = $plan->accrual_starts_at->setTimezone('Africa/Lagos')->toDateString();
+    $date = $plan->accrual_starts_at->setTimezone(config('app.timezone'))->toDateString();
     DB::unprepared("CREATE TRIGGER fail_capitalization BEFORE INSERT ON plan_capitalizations BEGIN SELECT RAISE(ABORT, 'Interrupted compounding'); END");
     expect(fn () => app(SavingsAccrual::class)->date($plan, $date))->toThrow(QueryException::class, 'Interrupted compounding');
     $this->assertDatabaseCount('plan_accruals', 0);
@@ -111,7 +115,7 @@ test('a corrupted capitalization blocks replay and retains all savings liabiliti
     DB::unprepared('DROP TRIGGER plan_capitalizations_no_UPDATE');
     DB::table('plan_capitalizations')->where('id', 1)->update(['amount' => 101]);
 
-    expect(app(SavingsAccrual::class)->date($plan, $plan->accrual_starts_at->setTimezone('Africa/Lagos')->toDateString()))->toBeFalse();
+    expect(app(SavingsAccrual::class)->date($plan, $plan->accrual_starts_at->setTimezone(config('app.timezone'))->toDateString()))->toBeFalse();
     app(Clock::class)->set($plan->matures_at);
     app(SavingsProcessing::class)->process($plan->id);
     $this->assertDatabaseCount('savings_exceptions', 1);

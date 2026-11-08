@@ -63,18 +63,18 @@ class SavingsProcessing
         if (DB::table('savings_exceptions')->where('savings_plan_id', $id)->exists()) {
             return;
         }
-        $today = $this->clock->now()->setTimezone('Africa/Lagos')->startOfDay();
-        $end = $plan->matures_at->setTimezone('Africa/Lagos')->subDay();
+        $today = $this->clock->now()->setTimezone(config('app.timezone'))->startOfDay();
+        $end = $plan->matures_at->setTimezone(config('app.timezone'))->subDay();
         $lastEligible = $today->subDay()->min($end);
         if ($through !== null) {
-            $requested = CarbonImmutable::createFromFormat('!Y-m-d', $through, 'Africa/Lagos');
+            $requested = CarbonImmutable::createFromFormat('!Y-m-d', $through, config('app.timezone'));
             if ($requested === null || $requested->format('Y-m-d') !== $through || $requested->greaterThan($lastEligible) || $requested->lessThan($plan->accrual_starts_at)) {
                 throw new \DomainException('Backfills require a completed contractual date.');
             }
             $lastEligible = $requested;
         }
         $last = DB::table('plan_accruals')->where('savings_plan_id', $id)->max('accrual_date');
-        $date = $last === null ? $plan->accrual_starts_at->setTimezone('Africa/Lagos') : CarbonImmutable::parse($last, 'Africa/Lagos')->addDay();
+        $date = $last === null ? $plan->accrual_starts_at->setTimezone(config('app.timezone')) : CarbonImmutable::parse($last, config('app.timezone'))->addDay();
         for ($count = 0; $count < config('savings.processing_days') && $date->lessThanOrEqualTo($lastEligible); $count++, $date = $date->addDay()) {
             if (! $this->accrual->date($plan, $date->toDateString())) {
                 return;

@@ -57,7 +57,7 @@
             // Validation errors are shown beside the preview controls.
         }
     }
-    const lagosDate = (date: string) => new Intl.DateTimeFormat('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'long', timeStyle: 'short' }).format(new Date(date));
+    const localDate = (date: string) => new Intl.DateTimeFormat('en-NG', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(date));
 </script>
 
 <AppHead title={plan.contract.name} />
@@ -72,14 +72,14 @@
             <p>Early exit is available after {plan.contract.minimum_holding_days} full days from accrual start. Interest forfeiture: {formatBasisPoints(plan.contract.forfeiture_bp ?? '0')}, including compounded interest. Original-principal penalty: {formatBasisPoints(plan.contract.principal_penalty_bp ?? '0')}. Suspensions and recovery restrictions block early exit.</p>
         {:else}<p>This contract is uncancellable until maturity.</p>{/if}
         <p>Partial funding and top-ups are unavailable. Plan fees: {formatMoney(plan.contract.fee)}. Withholding: {formatBasisPoints(plan.contract.withholding_bp)} of retained interest, including compounded interest, rounded to kobo at settlement.</p>
-        <p>Interest starts at the next Lagos midnight after funding. The initial partial day earns no interest. At maturity principal and net interest repay any recovery balance first, with the remainder paid into your wallet.</p>
+        <p>Interest starts at the next midnight in the application timezone after funding. The initial partial day earns no interest. At maturity principal and net interest repay any recovery balance first, with the remainder paid into your wallet.</p>
         <p class="whitespace-pre-wrap">{plan.contract.disclosure}</p>
         <dl class="grid gap-3 sm:grid-cols-2">
-            <div><dt class="font-bold">Created (Lagos)</dt><dd>{lagosDate(plan.createdAt)}</dd></div>
-            <div><dt class="font-bold">Funding deadline (Lagos)</dt><dd>{lagosDate(plan.fundingDeadline)}</dd></div>
-            {#if plan.fundedAt}<div><dt class="font-bold">Funded (Lagos)</dt><dd>{lagosDate(plan.fundedAt)}</dd></div>{/if}
-            {#if plan.accrualStartsAt}<div><dt class="font-bold">Accrual starts (Lagos)</dt><dd>{lagosDate(plan.accrualStartsAt)}</dd></div>{/if}
-            {#if plan.maturesAt}<div><dt class="font-bold">Maturity (Lagos)</dt><dd>{lagosDate(plan.maturesAt)}</dd></div>{/if}
+            <div><dt class="font-bold">Created (local time)</dt><dd>{localDate(plan.createdAt)}</dd></div>
+            <div><dt class="font-bold">Funding deadline (local time)</dt><dd>{localDate(plan.fundingDeadline)}</dd></div>
+            {#if plan.fundedAt}<div><dt class="font-bold">Funded (local time)</dt><dd>{localDate(plan.fundedAt)}</dd></div>{/if}
+            {#if plan.accrualStartsAt}<div><dt class="font-bold">Accrual starts (local time)</dt><dd>{localDate(plan.accrualStartsAt)}</dd></div>{/if}
+            {#if plan.maturesAt}<div><dt class="font-bold">Maturity (local time)</dt><dd>{localDate(plan.maturesAt)}</dd></div>{/if}
         </dl>
         {#if plan.state === 'draft' || plan.state === 'pending_funding'}
             {#if preparationStatus === 'preparing'}<p role="status">Your interest calculation is being prepared. Funding will be available when it finishes. Your funding deadline stays the same.</p>{/if}
@@ -101,7 +101,7 @@
         <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
             <h2 class="text-2xl font-bold">Rollover at maturity</h2>
             <p>Rollover is off until you choose it. Renewal uses all product terms effective at maturity, including the rate, lock, holding period, penalties, withholding and limits. An eligible election continues into each child until you disable it.</p>
-            <p>If renewal is unavailable or recovery restrictions apply, the plan settles to your wallet under recovery priority. Each child's interest starts at the next Lagos midnight after actual funding. Delays can leave a gap with no interest.</p>
+            <p>If renewal is unavailable or recovery restrictions apply, the plan settles to your wallet under recovery priority. Each child's interest starts at the next midnight in the application timezone after actual funding. Delays can leave a gap with no interest.</p>
             <Form {...update.form(plan.id)} class="grid gap-3">
                 {#snippet children({ errors, processing })}
                     <input type="hidden" name="action" value="rollover" />
@@ -135,7 +135,7 @@
             <h2 class="text-2xl font-bold">Close this plan early</h2>
             {#if exitUnavailable}<p role="status">{exitUnavailable}</p>
             {:else}
-                <p>The preview includes interest through the last completed Lagos date. The current partial day earns no interest. Review the deductions before confirming full closure.</p>
+                <p>The preview includes interest through the last completed date in the application timezone. The current partial day earns no interest. Review the deductions before confirming full closure.</p>
                 <form onsubmit={previewExit} class="grid gap-3">
                     <Label for="exit-waiver">Approved waiver</Label>
                     <select id="exit-waiver" bind:value={exit.waiver_id} onchange={() => quote = null} class="h-10 rounded-md border border-input bg-background px-3 text-foreground">
@@ -146,7 +146,7 @@
                     <Button type="submit" disabled={exit.processing}>Preview early closure</Button>
                 </form>
                 {#if quote}
-                    <p>Interest accrued through {quote.accrual_through} Lagos.</p>
+                    <p>Interest accrued through {quote.accrual_through} (application date).</p>
                     <dl class="grid gap-3 sm:grid-cols-2">
                         {#each [['principal', 'Original principal'], ['gross_interest', 'Total gross interest'], ['capitalized_interest', 'Previously compounded interest'], ['forfeiture', 'Interest forfeited'], ['principal_penalty', 'Principal penalty'], ['waived_forfeiture', 'Forfeiture waived'], ['waived_penalty', 'Principal penalty waived'], ['withholding', 'Withholding on retained interest'], ['wallet_credit', 'Paid to wallet']] as [key, label] (key)}
                             <div><dt class="font-bold">{label}</dt><dd>{formatMoney(quote[key])}</dd></div>
@@ -185,7 +185,7 @@
         <h2 class="text-2xl font-bold">Compounding history</h2>
         {#if capitalizations.data.length === 0}<p>No interest capitalization events.</p>{/if}
         {#each capitalizations.data as capitalization (capitalization.date)}
-            <p>{capitalization.date} Lagos: {formatMoney(capitalization.amount)} added to interest-bearing principal, {formatMoney(capitalization.cumulative)} total compounded.</p>
+            <p>{capitalization.date} (application date): {formatMoney(capitalization.amount)} added to interest-bearing principal, {formatMoney(capitalization.cumulative)} total compounded.</p>
         {/each}
         <nav class="flex gap-4" aria-label="Compounding pages">
             {#if capitalizations.prev_page_url}<Link href={show(plan.id, { query: { capitalizations_page: new URL(capitalizations.prev_page_url).searchParams.get('capitalizations_page') } })}>Previous</Link>{/if}
@@ -197,7 +197,7 @@
         <p>Daily amounts retain fractions in micro-kobo. The ledger recognizes changes in rounded cumulative interest.</p>
         {#if accruals.data.length === 0}<p>No completed accrual days yet.</p>{/if}
         {#each accruals.data as accrual (accrual.date)}
-            <div class="flex flex-wrap justify-between gap-2 border-b border-border py-3"><span>{accrual.date} Lagos</span><span>{accrual.microKobo} micro-kobo earned / {formatMoney(accrual.recognized)} total recognized</span></div>
+            <div class="flex flex-wrap justify-between gap-2 border-b border-border py-3"><span>{accrual.date} (application date)</span><span>{accrual.microKobo} micro-kobo earned / {formatMoney(accrual.recognized)} total recognized</span></div>
         {/each}
         <nav class="flex gap-4" aria-label="Interest pages">
             {#if accruals.prev_page_url}<Link href={show(plan.id, { query: { page: new URL(accruals.prev_page_url).searchParams.get('page') } })}>Previous</Link>{/if}

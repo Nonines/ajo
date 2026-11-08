@@ -56,7 +56,7 @@ class SavingsPlans
                 throw new DomainException('Choose an offered term and an amount within the product limits.');
             }
             $contract += ['principal' => (string) $principal->kobo, 'days' => $days, 'annual_rate_bp' => $term['annual_rate_bp']];
-            if ($days > $this->clock->now()->setTimezone('Africa/Lagos')->startOfDay()->addDay()->diffInDays(CarbonImmutable::parse('9999-12-31', 'Africa/Lagos'))) {
+            if ($days > $this->clock->now()->setTimezone(config('app.timezone'))->startOfDay()->addDay()->diffInDays(CarbonImmutable::parse('9999-12-31', config('app.timezone')))) {
                 throw new DomainException('The term exceeds supported calendar dates.');
             }
             $this->accrual->validateEntitlement($contract);
@@ -124,8 +124,8 @@ class SavingsPlans
             } catch (IntegerOverflowException $exception) {
                 throw new DomainException('The contractual postings exceed supported account balances.', previous: $exception);
             }
-            $start = $this->clock->now()->setTimezone('Africa/Lagos')->startOfDay()->addDay();
-            if ($current->contract['days'] > $start->diffInDays(CarbonImmutable::parse('9999-12-31', 'Africa/Lagos'))) {
+            $start = $this->clock->now()->setTimezone(config('app.timezone'))->startOfDay()->addDay();
+            if ($current->contract['days'] > $start->diffInDays(CarbonImmutable::parse('9999-12-31', config('app.timezone')))) {
                 throw new DomainException('The term exceeds supported calendar dates.');
             }
             $maturity = $start->addDays($current->contract['days']);
@@ -137,7 +137,7 @@ class SavingsPlans
             $journal = $this->ledger->post('plan-funding:'.$current->id, [
                 ['account_id' => LedgerAccount::where('code', 'customer:'.$user->id.':wallet')->sole()->id, 'amount' => $principal],
                 ['account_id' => $this->account($current, 'principal')->id, 'amount' => $principal->negate()],
-            ], $this->clock->now()->setTimezone('Africa/Lagos')->toDateString(), 'Savings plan funding', $user->id);
+            ], $this->clock->now()->setTimezone(config('app.timezone'))->toDateString(), 'Savings plan funding', $user->id);
             $current->forceFill(['funded_at' => $this->clock->now(), 'accrual_starts_at' => $start->utc(), 'matures_at' => $maturity->utc(),
                 'funding_journal_id' => $journal->id, 'next_process_at' => $start->addDay()->addMinutes(5)->utc()])->save();
             $current->state->transitionTo(Active::class);
@@ -223,7 +223,7 @@ class SavingsPlans
         $term = collect($version->contract['terms'])->firstWhere('days', $election['days']);
         if ($term === null || $amount->kobo <= 0 || $amount->kobo > $proceeds || $amount->kobo < (new Money($version->contract['minimum']))->kobo
             || $amount->kobo > (new Money($version->contract['maximum']))->kobo
-            || $election['days'] > $this->clock->now()->setTimezone('Africa/Lagos')->startOfDay()->addDay()->diffInDays(CarbonImmutable::parse('9999-12-31', 'Africa/Lagos'))) {
+            || $election['days'] > $this->clock->now()->setTimezone(config('app.timezone'))->startOfDay()->addDay()->diffInDays(CarbonImmutable::parse('9999-12-31', config('app.timezone')))) {
             return null;
         }
         try {

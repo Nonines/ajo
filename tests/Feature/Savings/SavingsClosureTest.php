@@ -30,7 +30,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Livewire\Livewire;
 
 beforeEach(function (): void {
-    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-27T23:00:00Z')));
+    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-28T00:00:00Z')));
     config(['inertia.ssr.enabled' => false]);
 });
 
@@ -83,14 +83,16 @@ test('early closure forfeits both capitalized and unpaid interest and taxes only
     Queue::assertPushed(DeliverSavingsNotice::class, 1);
 });
 
-test('minimum holding is measured from accrual start at the exact Lagos boundary', function (): void {
+test('minimum holding is measured from accrual start at the exact application midnight boundary', function (string $timezone): void {
+    config(['app.timezone' => $timezone]);
+    app(Clock::class)->set(CarbonImmutable::parse('2028-03-10 12:00:00', $timezone));
     $plan = terminableSavingsPlan();
-    app(Clock::class)->set($plan->accrual_starts_at->addDays(7)->subSecond());
+    app(Clock::class)->set(CarbonImmutable::parse('2028-03-18 00:00:00', $timezone)->subSecond());
     expect(fn () => app(SavingsSettlements::class)->preview($plan->user, $plan))->toThrow(DomainException::class, 'minimum holding');
-    app(Clock::class)->set($plan->accrual_starts_at->addDays(7));
+    app(Clock::class)->set(CarbonImmutable::parse('2028-03-18 00:00:00', $timezone));
     expect(app(SavingsSettlements::class)->preview($plan->user, $plan)['gross_interest'])->toBe('70000');
     $this->assertDatabaseCount('plan_accruals', 7);
-});
+})->with(['UTC', 'America/New_York']);
 
 test('legacy and uncancellable locks cannot exit or receive a penalty waiver', function (string $lock): void {
     $plan = fundedAccrualPlan(changes: ['lock' => $lock]);

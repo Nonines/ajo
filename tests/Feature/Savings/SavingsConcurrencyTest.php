@@ -20,7 +20,7 @@ $app = require getcwd().'/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => $argv[1], 'ledger.lock_store' => 'redis']);
 Illuminate\Support\Facades\DB::purge('sqlite');
-$app->instance(App\Contracts\Clock::class, new App\Support\FrozenClock(Carbon\CarbonImmutable::parse(match ($argv[3]) { 'settle', 'boundary-exit' => '2028-03-30T00:00:00Z', 'exit', 'waiver' => '2028-03-10T10:00:00Z', default => '2028-02-27T23:00:00Z' })));
+$app->instance(App\Contracts\Clock::class, new App\Support\FrozenClock(Carbon\CarbonImmutable::parse(match ($argv[3]) { 'settle', 'boundary-exit' => '2028-03-30T00:00:00Z', 'exit', 'waiver' => '2028-03-10T10:00:00Z', default => '2028-02-28T00:00:00Z' })));
 Illuminate\Support\Facades\Queue::fake([App\Jobs\DeliverSavingsNotice::class]);
 try {
     $plan = App\Models\SavingsPlan::findOrFail((int) $argv[2]);
@@ -49,7 +49,7 @@ test('independent savings workers serialize funding and maturity without duplica
     $original = DB::getDefaultConnection();
     config(['database.connections.savings_concurrency' => [...config('database.connections.sqlite'), 'database' => $database]]);
     DB::setDefaultConnection('savings_concurrency');
-    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-27T23:00:00Z')));
+    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-28T00:00:00Z')));
     $workers = [];
     try {
         $this->artisan('migrate', ['--database' => 'savings_concurrency', '--force' => true, '--no-interaction' => true])->assertSuccessful();
@@ -102,7 +102,7 @@ test('independent workers serialize early closure waiver consumption rollover an
     $original = DB::getDefaultConnection();
     config(['database.connections.closure_concurrency' => [...config('database.connections.sqlite'), 'database' => $database]]);
     DB::setDefaultConnection('closure_concurrency');
-    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-27T23:00:00Z')));
+    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-28T00:00:00Z')));
     $workers = [];
     try {
         $this->artisan('migrate', ['--database' => 'closure_concurrency', '--force' => true, '--no-interaction' => true])->assertSuccessful();

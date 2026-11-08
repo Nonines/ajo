@@ -225,7 +225,7 @@ class Approvals
             throw new DomainException('Unsupported approval subject.');
         }
         $recovery = app(RecoveryControls::class);
-        $effectiveDate = $this->clock->now()->setTimezone('Africa/Lagos')->toDateString();
+        $effectiveDate = $this->clock->now()->setTimezone(config('app.timezone'))->toDateString();
         if ($approval->action === 'recovery.release') {
             if ($recovery->balance($subject->id) !== 0) {
                 throw new DomainException('Recovery release requires a zero debt balance.');

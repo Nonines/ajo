@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
 
 class ProcessSavings extends Command
 {
-    protected $signature = 'savings:process {--plan= : Process one plan} {--from= : First completed Lagos accrual date} {--through= : Last completed Lagos accrual date}';
+    protected $signature = 'savings:process {--plan= : Process one plan} {--from= : First completed accrual date in the application timezone} {--through= : Last completed accrual date in the application timezone}';
 
     protected $description = 'Discover savings work or process a bounded chronological backfill';
 
@@ -29,8 +29,8 @@ class ProcessSavings extends Command
         }
         $plan = SavingsPlan::findOrFail((int) $this->option('plan'));
         if ($this->option('from') !== null) {
-            $from = CarbonImmutable::createFromFormat('!Y-m-d', $this->option('from'), 'Africa/Lagos');
-            $through = CarbonImmutable::createFromFormat('!Y-m-d', $this->option('through') ?? $this->option('from'), 'Africa/Lagos');
+            $from = CarbonImmutable::createFromFormat('!Y-m-d', $this->option('from'), config('app.timezone'));
+            $through = CarbonImmutable::createFromFormat('!Y-m-d', $this->option('through') ?? $this->option('from'), config('app.timezone'));
             if ($from === null || $through === null || $from->format('Y-m-d') !== $this->option('from') || $through->lessThan($from)
                 || $through->format('Y-m-d') !== ($this->option('through') ?? $this->option('from'))
                 || $from->diffInDays($through) >= config('savings.processing_days')) {

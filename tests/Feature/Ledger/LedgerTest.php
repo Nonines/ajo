@@ -194,7 +194,7 @@ test('projection verification reports corruption and rebuild restores it', funct
 });
 
 test('journals retain economic date independently of the actual UTC posting instant', function () {
-    $this->app->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2026-11-04 00:30:00', 'Africa/Lagos')));
+    $this->app->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2026-11-03T23:30:00Z')));
 
     $journal = postWalletTestCredit(User::factory()->create());
 

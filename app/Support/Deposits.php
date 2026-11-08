@@ -153,7 +153,7 @@ class Deposits
             }
             $repayment = min($debt, $current->requested_net);
             $credit = $current->requested_net - $repayment;
-            $date = $payment->paidAt->setTimezone('Africa/Lagos')->toDateString();
+            $date = $payment->paidAt->setTimezone(config('app.timezone'))->toDateString();
             $entries = [$this->entry('house:cash_at_gateway', $payment->gross)];
             if ($credit > 0) {
                 $entries[] = ['account_id' => $wallet->id, 'amount' => new Money(-$credit)];

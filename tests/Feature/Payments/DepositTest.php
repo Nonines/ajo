@@ -49,6 +49,21 @@ test('verified gross receipt recognizes net value and fee provenance exactly onc
     expect(app(Ledger::class)->projectionMismatches())->toBe([]);
 });
 
+test('deposit journals use the application date of the provider payment', function (string $timezone, string $expectedDate) {
+    config(['app.timezone' => $timezone]);
+    $deposit = initializePaymentTest(User::factory()->create());
+    fakeVerifiedPayment($deposit, ['paid_at' => '2026-11-07T23:30:00Z']);
+
+    app(Deposits::class)->verify($deposit);
+
+    $deposit->refresh();
+    $this->assertDatabaseHas('journals', ['id' => $deposit->recognition_journal_id, 'effective_date' => $expectedDate]);
+    $this->assertDatabaseHas('journals', ['id' => $deposit->fee_journal_id, 'effective_date' => $expectedDate]);
+})->with([
+    'default UTC' => ['UTC', '2026-11-07'],
+    'configured timezone' => ['Asia/Kolkata', '2026-11-08'],
+]);
+
 test('provider disagreement cannot recognize customer value', function (array $changes) {
     $deposit = initializePaymentTest(User::factory()->create());
     fakeVerifiedPayment($deposit, $changes);

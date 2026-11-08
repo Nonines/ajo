@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
-    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-27T23:00:00Z')));
+    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-28T00:00:00Z')));
     config(['inertia.ssr.enabled' => false]);
 });
 
@@ -100,7 +100,7 @@ test('delayed rollover selects every term effective at maturity and preserves or
     expect($child->contract['withholding_bp'])->toBe(1500);
     expect($child->contract['days'])->toBe(60);
     expect($child->funded_at->equalTo(app(Clock::class)->now()))->toBeTrue();
-    expect($child->accrual_starts_at->equalTo(app(Clock::class)->now()->setTimezone('Africa/Lagos')->startOfDay()->addDay()))->toBeTrue();
+    expect($child->accrual_starts_at->equalTo(app(Clock::class)->now()->setTimezone(config('app.timezone'))->startOfDay()->addDay()))->toBeTrue();
     expect($plan->fresh()->contract['annual_rate_bp'])->toBe(36500);
     expect(fn () => app(SavingsPlans::class)->draft($plan->user, $effective, new Money(10000), 60, (string) Str::uuid()))->toThrow(DomainException::class, 'no longer offered');
 });

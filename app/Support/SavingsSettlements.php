@@ -35,7 +35,7 @@ class SavingsSettlements
         }
         $minimum = $plan->contract['minimum_holding_days'] ?? null;
         if (! is_int($minimum) || $minimum < 1 || $minimum >= $plan->contract['days']
-            || $this->clock->now()->lessThan($plan->accrual_starts_at->addDays($minimum))) {
+            || $this->clock->now()->lessThan($plan->accrual_starts_at->setTimezone(config('app.timezone'))->addDays($minimum))) {
             throw new DomainException('The contractual minimum holding period has not completed.');
         }
         if (app(RecoveryControls::class)->restricted($plan->user_id)) {
@@ -262,8 +262,8 @@ class SavingsSettlements
             'waived_forfeiture' => $waivedInterest, 'waived_penalty' => $waivedPrincipal, 'withholding' => $tax,
             'net_interest' => $retained - $tax, 'incurred_fees' => 0, 'debt_repayment' => $repaid, 'remaining_debt' => $debt - $repaid,
             'wallet_credit' => $net - $repaid, 'rounding_micro_kobo' => (string) BigInteger::of($gross)->multipliedBy(1000000)->minus($evidence['micro']),
-            'accrual_through' => $days === 0 ? '' : $plan->accrual_starts_at->setTimezone('Africa/Lagos')->addDays($days - 1)->toDateString(),
-            'waiver_id' => $waiverId ?? '', 'quote_date' => $this->clock->now()->setTimezone('Africa/Lagos')->toDateString()];
+            'accrual_through' => $days === 0 ? '' : $plan->accrual_starts_at->setTimezone(config('app.timezone'))->addDays($days - 1)->toDateString(),
+            'waiver_id' => $waiverId ?? '', 'quote_date' => $this->clock->now()->setTimezone(config('app.timezone'))->toDateString()];
 
         return array_map(strval(...), $quote);
     }
@@ -293,7 +293,7 @@ class SavingsSettlements
     private function close(SavingsPlan $plan, array $quote, string $reason, ?int $approvalId = null): void
     {
         $date = in_array($reason, ['matured_withdrawal', 'rolled_over'], true)
-            ? $plan->matures_at->setTimezone('Africa/Lagos')->toDateString() : $quote['quote_date'];
+            ? $plan->matures_at->setTimezone(config('app.timezone'))->toDateString() : $quote['quote_date'];
         $principalAccount = $this->plans->account($plan, 'principal');
         $interestAccount = $this->plans->account($plan, 'interest');
         $forfeitureJournal = $penaltyJournal = null;

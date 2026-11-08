@@ -18,10 +18,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
-    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-27T23:00:00Z')));
+    app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-28T00:00:00Z')));
 });
 
-test('simple accrual earns 30 completed Lagos days across leap day and settles tax once', function () {
+test('simple accrual earns 30 completed application days across leap day and settles tax once', function () {
     Queue::fake([DeliverSavingsNotice::class]);
     $plan = fundedAccrualPlan();
     app(Clock::class)->set($plan->matures_at);
@@ -45,6 +45,44 @@ test('simple accrual earns 30 completed Lagos days across leap day and settles t
     expect(LedgerAccount::where('code', 'house:interest_expense')->sole()->balance->kobo)->toBe(8219);
     expect(LedgerAccount::where('code', 'house:withholding_tax_payable')->sole()->balance->kobo)->toBe(-822);
     expect(app(Ledger::class)->projectionMismatches())->toBe([]);
+});
+
+test('processing waits for a completed day in the application timezone', function (string $timezone, string $fundedAt, string $boundary, string $accrualDate) {
+    config(['app.timezone' => $timezone]);
+    app(Clock::class)->set(CarbonImmutable::parse($fundedAt));
+    $plan = fundedAccrualPlan();
+    $clock = app(Clock::class);
+    $clock->set(CarbonImmutable::parse($boundary)->subSecond());
+
+    app(SavingsProcessing::class)->process($plan->id);
+
+    $this->assertDatabaseCount('plan_accruals', 0);
+    expect(app(SavingsAccrual::class)->completedDays($plan))->toBe(0);
+    $clock->set(CarbonImmutable::parse($boundary));
+
+    app(SavingsProcessing::class)->process($plan->id);
+
+    $this->assertDatabaseHas('plan_accruals', ['savings_plan_id' => $plan->id, 'accrual_date' => $accrualDate]);
+    $this->assertDatabaseCount('plan_accruals', 1);
+    expect(app(SavingsAccrual::class)->completedDays($plan))->toBe(1);
+})->with([
+    'default UTC' => ['UTC', '2028-02-27T23:30:00Z', '2028-02-29T00:00:00Z', '2028-02-28'],
+    'configured timezone' => ['Asia/Kolkata', '2028-02-27T23:30:00Z', '2028-02-29T18:30:00Z', '2028-02-29'],
+]);
+
+test('completed days and catchup count application dates across spring forward', function () {
+    config(['app.timezone' => 'America/New_York']);
+    app(Clock::class)->set(CarbonImmutable::parse('2027-03-12T17:00:00Z'));
+    $plan = fundedAccrualPlan();
+    app(Clock::class)->set(CarbonImmutable::parse('2027-03-15T04:00:00Z'));
+    $accrual = app(SavingsAccrual::class);
+
+    expect($accrual->completedDays($plan))->toBe(2);
+    expect($accrual->catchUp($plan))->toBeTrue();
+
+    $this->assertDatabaseCount('plan_accruals', 2);
+    $this->assertDatabaseHas('plan_accruals', ['savings_plan_id' => $plan->id, 'accrual_date' => '2027-03-13']);
+    $this->assertDatabaseHas('plan_accruals', ['savings_plan_id' => $plan->id, 'accrual_date' => '2027-03-14']);
 });
 
 test('daily micro precision and cumulative kobo use half even ties', function () {
@@ -72,7 +110,7 @@ test('zero and small daily interest carry fractions without zero journals', func
 test('accrual refuses incomplete future and out of order days and replays have no financial effect', function () {
     $plan = fundedAccrualPlan();
     $accrual = app(SavingsAccrual::class);
-    $first = $plan->accrual_starts_at->setTimezone('Africa/Lagos')->toDateString();
+    $first = $plan->accrual_starts_at->setTimezone(config('app.timezone'))->toDateString();
     expect(fn () => $accrual->date($plan, $first))->toThrow(DomainException::class);
     app(Clock::class)->set($plan->accrual_starts_at->addDays(3));
     expect(fn () => $accrual->date($plan, '2028-03-01'))->toThrow(DomainException::class);
@@ -86,7 +124,7 @@ test('mismatched replay commits investigation and blocks maturity on subsequent 
     Queue::fake([DeliverSavingsNotice::class]);
     $plan = fundedAccrualPlan();
     app(Clock::class)->set($plan->matures_at);
-    for ($date = $plan->accrual_starts_at->setTimezone('Africa/Lagos'); $date->lessThan($plan->matures_at); $date = $date->addDay()) {
+    for ($date = $plan->accrual_starts_at->setTimezone(config('app.timezone')); $date->lessThan($plan->matures_at); $date = $date->addDay()) {
         app(SavingsAccrual::class)->date($plan, $date->toDateString());
     }
     DB::unprepared('DROP TRIGGER plan_accruals_no_UPDATE');
@@ -146,7 +184,7 @@ test('overflowing full entitlement is rejected before principal is locked', func
 test('micro kobo larger than native integers remain exact decimal strings', function () {
     $plan = fundedAccrualPlan(100000000000000000, 1000);
     app(Clock::class)->set($plan->accrual_starts_at->addDay());
-    app(SavingsAccrual::class)->date($plan, $plan->accrual_starts_at->setTimezone('Africa/Lagos')->toDateString());
+    app(SavingsAccrual::class)->date($plan, $plan->accrual_starts_at->setTimezone(config('app.timezone'))->toDateString());
 
     expect(DB::table('plan_accruals')->sole()->micro_kobo)->toBe('27397260273972602740');
     expect(app(Ledger::class)->projectionMismatches())->toBe([]);
@@ -169,7 +207,7 @@ test('seeded interleaved plan operations preserve balances interest and idempote
         if ($progress[$index] >= 30) {
             continue;
         }
-        $date = $plans[$index]->accrual_starts_at->setTimezone('Africa/Lagos')->addDays($progress[$index])->toDateString();
+        $date = $plans[$index]->accrual_starts_at->setTimezone(config('app.timezone'))->addDays($progress[$index])->toDateString();
         expect(app(SavingsAccrual::class)->date($plans[$index], $date))->toBeTrue();
         if (mt_rand(0, 1) === 1) {
             expect(app(SavingsAccrual::class)->date($plans[$index], $date))->toBeTrue();

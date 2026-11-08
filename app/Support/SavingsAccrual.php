@@ -151,7 +151,7 @@ class SavingsAccrual
 
     public function date(SavingsPlan $plan, string $date): bool
     {
-        $parsed = CarbonImmutable::createFromFormat('!Y-m-d', $date, 'Africa/Lagos');
+        $parsed = CarbonImmutable::createFromFormat('!Y-m-d', $date, config('app.timezone'));
         if ($parsed === null || $parsed->format('Y-m-d') !== $date) {
             throw new DomainException('Use an exact YYYY-MM-DD accrual date.');
         }
@@ -160,7 +160,7 @@ class SavingsAccrual
             $current = SavingsPlan::findOrFail($plan->id);
             if ($current->accrual_starts_at === null || $current->matures_at === null || $parsed->lessThan($current->accrual_starts_at)
                 || $parsed->greaterThanOrEqualTo($current->matures_at) || $parsed->addDay()->greaterThan($this->clock->now())) {
-                throw new DomainException('Only completed contractual Lagos days can accrue.');
+                throw new DomainException('Only completed contractual application days can accrue.');
             }
             if (DB::table('savings_exceptions')->where('savings_plan_id', $current->id)->exists()) {
                 return false;
@@ -217,7 +217,7 @@ class SavingsAccrual
     {
         $interval = $this->interval($plan->contract);
         $boundary = $date->addDay();
-        $completed = (int) $plan->accrual_starts_at->diffInDays($boundary);
+        $completed = (int) $plan->accrual_starts_at->setTimezone(config('app.timezone'))->diffInDays($boundary);
         if ($interval === null || $completed % $interval !== 0 || $boundary->greaterThanOrEqualTo($plan->matures_at)) {
             return true;
         }
@@ -274,8 +274,8 @@ class SavingsAccrual
         if ($days === 0) {
             return $expected;
         }
-        $firstDate = $plan->accrual_starts_at->setTimezone('Africa/Lagos')->toDateString();
-        $lastDate = $plan->accrual_starts_at->setTimezone('Africa/Lagos')->addDays($days - 1)->toDateString();
+        $firstDate = $plan->accrual_starts_at->setTimezone(config('app.timezone'))->toDateString();
+        $lastDate = $plan->accrual_starts_at->setTimezone(config('app.timezone'))->addDays($days - 1)->toDateString();
         if ($coverage->first_date !== $firstDate || $coverage->last_date !== $lastDate) {
             $this->investigate($plan, 'accrual-coverage', 'Recorded dates disagree with the contractual accrual range.');
 
@@ -296,17 +296,17 @@ class SavingsAccrual
 
     public function completedDays(SavingsPlan $plan): int
     {
-        $cutoff = $this->clock->now()->setTimezone('Africa/Lagos')->startOfDay()->min($plan->matures_at);
+        $cutoff = $this->clock->now()->setTimezone(config('app.timezone'))->startOfDay()->min($plan->matures_at->setTimezone(config('app.timezone')));
 
-        return max(0, (int) $plan->accrual_starts_at->diffInDays($cutoff, false));
+        return max(0, (int) $plan->accrual_starts_at->setTimezone(config('app.timezone'))->diffInDays($cutoff, false));
     }
 
     public function catchUp(SavingsPlan $plan): bool
     {
         $days = $this->completedDays($plan);
         $last = DB::table('plan_accruals')->where('savings_plan_id', $plan->id)->max('accrual_date');
-        $date = $last === null ? $plan->accrual_starts_at->setTimezone('Africa/Lagos') : CarbonImmutable::parse($last, 'Africa/Lagos')->addDay();
-        $end = $plan->accrual_starts_at->addDays($days);
+        $date = $last === null ? $plan->accrual_starts_at->setTimezone(config('app.timezone')) : CarbonImmutable::parse($last, config('app.timezone'))->addDay();
+        $end = $plan->accrual_starts_at->setTimezone(config('app.timezone'))->addDays($days);
         for ($count = 0; $count < config('savings.processing_days') && $date->lessThan($end); $count++) {
             if (! $this->date($plan, $date->toDateString())) {
                 throw new DomainException('Accrual evidence requires investigation before closure.');

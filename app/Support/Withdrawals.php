@@ -414,7 +414,7 @@ class Withdrawals
 
     private function date(): string
     {
-        return $this->clock->now()->setTimezone('Africa/Lagos')->toDateString();
+        return $this->clock->now()->setTimezone(config('app.timezone'))->toDateString();
     }
 
     private function investigate(WithdrawalRequest $withdrawal, string $code, string $message): void

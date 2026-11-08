@@ -32,12 +32,30 @@ test('a customer reviews accepts and funds their snapshotted contract once', fun
     $this->patch(route('savings.update', $plan), ['action' => 'fund'])->assertRedirect();
 
     expect((string) $plan->fresh()->state)->toBe('active');
-    expect($plan->fresh()->accrual_starts_at->toIso8601String())->toBe('2026-11-07T23:00:00+00:00');
-    expect($plan->fresh()->matures_at->toIso8601String())->toBe('2026-12-07T23:00:00+00:00');
+    expect($plan->fresh()->accrual_starts_at->toIso8601String())->toBe('2026-11-08T00:00:00+00:00');
+    expect($plan->fresh()->matures_at->toIso8601String())->toBe('2026-12-08T00:00:00+00:00');
     expect(LedgerAccount::where('code', 'customer:'.$user->id.':wallet')->sole()->balance->kobo)->toBe(-1000000);
     $this->assertDatabaseCount('journals', 2);
     expect(app(Ledger::class)->projectionMismatches())->toBe([]);
 });
+
+test('funding uses the configured application calendar near midnight', function (string $timezone, string $effectiveDate, string $startsAt, string $maturesAt) {
+    config(['app.timezone' => $timezone]);
+    app(Clock::class)->set(CarbonImmutable::parse('2026-11-07T23:30:00Z'));
+    $plan = SavingsPlan::factory()->create();
+    postWalletTestCredit($plan->user, kobo: 2000000);
+    $plans = app(SavingsPlans::class);
+    $plans->accept($plan->user, $plan);
+
+    $funded = $plans->fund($plan->user, $plan)->fresh();
+
+    expect($funded->accrual_starts_at->toIso8601String())->toBe($startsAt);
+    expect($funded->matures_at->toIso8601String())->toBe($maturesAt);
+    $this->assertDatabaseHas('journals', ['id' => $funded->funding_journal_id, 'effective_date' => $effectiveDate]);
+})->with([
+    'default UTC' => ['UTC', '2026-11-07', '2026-11-08T00:00:00+00:00', '2026-12-08T00:00:00+00:00'],
+    'configured timezone' => ['Asia/Kolkata', '2026-11-08', '2026-11-08T18:30:00+00:00', '2026-12-08T18:30:00+00:00'],
+]);
 
 test('funding rejects invalid lifecycle insufficient funds recovery and inactive identities atomically', function (string $failure) {
     $plan = SavingsPlan::factory()->create();

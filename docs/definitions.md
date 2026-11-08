@@ -89,7 +89,7 @@ Sources: [products](../app/Support/SavingsProducts.php), [plans](../app/Support/
 | `funding_deadline` | The last allowed time to fund the plan. `savings.funding_hours` supplies the window when the plan is created. |
 | `funded_at` | When the plan received its principal. |
 | Accrual | Calculating and recording the interest earned for an eligible completed day. |
-| `accrual_starts_at` | The next Lagos midnight after funding. The first partial day does not earn interest. |
+| `accrual_starts_at` | The next midnight in the configured application timezone after funding. The first partial day does not earn interest. |
 | Maturity / `matures_at` | The point when the agreed saving period ends and settlement becomes due. |
 | Settlement | Closing out the plan's principal and interest, taking withholding, repaying recovery debt if needed, and crediting the wallet with the remainder. |
 | `wallet_credit` | The amount that actually reaches the wallet after settlement deductions and debt repayment. |
@@ -206,7 +206,7 @@ Sources: [schedule](../routes/console.php), [Horizon config](../config/horizon.p
 
 | Term | Simple meaning |
 | --- | --- |
-| Business time / Africa/Lagos | The local calendar used for savings days and economic dates. Ajo uses UTC for stored timestamps where applicable, then converts to Lagos time for business-day decisions. |
+| Application time | The timezone configured in `config/app.php`, used for savings days and economic dates. Timestamp displays may convert to the viewer’s local timezone; calendar dates remain application dates. |
 | Clock | The app's source of the current time. A frozen clock lets tests check deadlines without waiting for real time to pass. |
 | Scheduler | Starts recurring work when it is due, such as payment recovery or daily savings processing. |
 | Job / queue / worker | One background task / the waiting list of tasks / the process that runs them. Scheduling a job does not mean it has finished. |

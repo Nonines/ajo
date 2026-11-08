@@ -11,5 +11,5 @@ Artisan::command('inspire', function () {
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::command('payments:recover')->everyMinute()->withoutOverlapping(2)->onOneServer();
 Schedule::command('withdrawals:recover')->everyMinute()->withoutOverlapping(2)->onOneServer();
-Schedule::command('savings:process')->dailyAt('00:05')->timezone('Africa/Lagos')->withoutOverlapping(2)->onOneServer();
+Schedule::command('savings:process')->dailyAt('00:05')->withoutOverlapping(2)->onOneServer();
 Schedule::command('savings:recover')->everyMinute()->withoutOverlapping(2)->onOneServer();
