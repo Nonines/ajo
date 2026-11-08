@@ -20,6 +20,7 @@ export type CurrentUrlState = {
     ) => TIfTrue | TIfFalse;
 };
 
+// Expose a reactive pathname with exact and raw-prefix comparisons for navigation consumers.
 export function currentUrlState(): CurrentUrlState {
     const currentUrl = $derived.by(() => {
         const origin =

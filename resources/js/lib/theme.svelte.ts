@@ -77,6 +77,7 @@ const detachThemeChangeListener = (): void => {
     themeChangeMediaQuery = null;
 };
 
+// Restore the shared preference, replace any old media listener, and return its cleanup function.
 export function initializeTheme(): () => void {
     if (typeof window === 'undefined') {
         return () => {};
@@ -97,6 +98,7 @@ export function initializeTheme(): () => void {
     return detachThemeChangeListener;
 }
 
+// Persist the preference for future visits and the server-rendered shell, then update the current document.
 export function updateAppearance(value: Appearance): void {
     appearance.value = value;
 

@@ -9,6 +9,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
+    // Page-name prefixes select persistent shells; settings nest inside the authenticated app layout.
     layout: (name) => {
         switch (true) {
             case name === 'Welcome':

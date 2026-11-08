@@ -2,6 +2,7 @@ import { router } from '@inertiajs/svelte';
 import { toast } from 'svelte-sonner';
 import type { FlashToast } from '@/types/ui';
 
+// Register once at app startup so Inertia flash events become visible toast notifications.
 export function initializeFlashToast(): void {
     router.on('flash', (event) => {
         const flash = (event as CustomEvent).detail?.flash;
