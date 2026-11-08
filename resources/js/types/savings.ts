@@ -6,6 +6,11 @@ export type SavingsProductContract = {
     withholding_bp: string;
     fee: string;
     terms: { days: number; annual_rate_bp: string }[];
+    interest: 'simple' | 'daily' | '30_days';
+    lock: 'until_maturity' | 'terminable' | 'uncancellable';
+    minimum_holding_days?: number | null;
+    forfeiture_bp?: string;
+    principal_penalty_bp?: string;
 };
 
 export type SavingsContract = SavingsProductContract & {
@@ -24,4 +29,10 @@ export type SavingsPlan = {
     accrualStartsAt: string | null;
     maturesAt: string | null;
     closureReason: string | null;
+    parentPlanId: number | null;
+    rolloverElection: {
+        enabled: boolean;
+        days: number;
+        amount_mode: 'original_principal' | 'all_net';
+    } | null;
 };
