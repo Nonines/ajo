@@ -18,11 +18,11 @@
 </script>
 
 <AppHead title="Notifications" />
-<div class="flex flex-1 flex-col gap-6 p-6 sm:p-10">
-    <h1 class="font-display text-4xl font-black">Your updates.</h1>
-    {#if notifications.data.length === 0}<p>No notifications yet.</p>{/if}
+<div class="page-stack">
+    <div class="page-intro"><p class="eyebrow mb-4 text-muted-foreground">Stay in the loop</p><h1>Your updates.</h1><p class="mt-4">A record of what’s happening with your money. Deposits, savings, and withdrawals, all in one place.</p></div>
+    {#if notifications.data.length === 0}<div class="empty-state"><p class="mb-2 font-display text-xl font-bold text-foreground">All quiet for now.</p><p>Your payment and savings updates will appear here.</p></div>{/if}
     {#each notifications.data as notice (notice.id)}
-        <section class="grid gap-3 rounded-md border-2 border-foreground bg-card p-6">
+        <section class="panel grid gap-4 {notice.readAt ? '' : 'border-l-4 border-l-foreground'}"><div class="flex flex-wrap items-center justify-between gap-3"><span class="status-label">{notice.readAt ? 'Read' : 'New update'}</span><time datetime={notice.createdAt} class="text-xs text-muted-foreground">{new Date(notice.createdAt).toLocaleString()}</time></div>
             {#if notice.data.type.startsWith('withdrawal_')}
                 <h2 class="text-xl font-bold">Withdrawal {notice.data.type.slice(11).replaceAll('_', ' ')}</h2>
                 <p>Principal: {formatMoney(notice.data.principal)}. Reserved fee: {formatMoney(notice.data.reserved_fee)}. Actual fee: {notice.data.actual_fee === 'unverified' ? 'awaiting verification' : formatMoney(notice.data.actual_fee)}. Remaining recovery balance: {formatMoney(notice.data.remaining_debt)}.</p>

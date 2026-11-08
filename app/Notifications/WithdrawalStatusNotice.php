@@ -2,9 +2,13 @@
 
 namespace App\Notifications;
 
+use App\Support\Money\Money;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Formats payout outcomes while keeping unknown fees visibly unverified.
+ */
 class WithdrawalStatusNotice extends Notification
 {
     /** @param array<string, string> $data */
@@ -16,13 +20,17 @@ class WithdrawalStatusNotice extends Notification
         return ['mail'];
     }
 
+    /**
+     * Distinguishes unverified fees from known amounts in the payout update.
+     */
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)->subject('Ajo withdrawal update')
             ->line('Withdrawal '.$this->data['reference'].' is '.str_replace('_', ' ', substr($this->data['type'], 11)).'.');
+
         foreach (['principal', 'reserved_fee', 'actual_fee', 'remaining_debt'] as $field) {
             $value = $this->data[$field];
-            $display = $value === 'unverified' ? 'awaiting verification' : 'NGN '.intdiv((int) $value, 100).'.'.str_pad((string) ((int) $value % 100), 2, '0', STR_PAD_LEFT);
+            $display = $value === 'unverified' ? 'awaiting verification' : 'NGN '.(new Money($value))->toNaira();
             $mail->line(ucwords(str_replace('_', ' ', $field)).': '.$display);
         }
 

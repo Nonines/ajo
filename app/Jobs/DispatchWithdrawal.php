@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\WithdrawalRequest;
-use App\Support\Withdrawals;
+use App\Support\Withdrawals\Withdrawals;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -21,6 +21,9 @@ class DispatchWithdrawal implements ShouldQueue
         $this->onConnection('redis')->onQueue('payouts')->afterCommit();
     }
 
+    /**
+     * Reloads the reservation before applying the service's submission checks.
+     */
     public function handle(Withdrawals $withdrawals): void
     {
         $withdrawals->dispatch(WithdrawalRequest::findOrFail($this->withdrawalId));

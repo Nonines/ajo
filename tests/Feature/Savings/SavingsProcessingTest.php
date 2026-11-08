@@ -7,12 +7,12 @@ use App\Models\LedgerAccount;
 use App\Models\SavingsNotice;
 use App\Models\SavingsPlan;
 use App\Notifications\SavingsMaturityNotice;
-use App\Support\FrozenClock;
-use App\Support\Ledger;
-use App\Support\Money;
-use App\Support\SavingsAccrual;
-use App\Support\SavingsNotices;
-use App\Support\SavingsProcessing;
+use App\Support\Clock\FrozenClock;
+use App\Support\Ledger\Ledger;
+use App\Support\Money\Money;
+use App\Support\Savings\SavingsAccrual;
+use App\Support\Savings\SavingsNotices;
+use App\Support\Savings\SavingsProcessing;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Bus;
@@ -24,6 +24,16 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2028-02-28T00:00:00Z')));
     config(['inertia.ssr.enabled' => false]);
+});
+
+test('savings email formats present settlement amounts and omits absent waiver limits', function () {
+    $notice = new SavingsMaturityNotice(['type' => 'savings_maturity', 'plan_id' => '1',
+        'principal' => '9007199254740993', 'net_interest' => '1', 'remaining_debt' => '0']);
+
+    $mail = $notice->toMail(new stdClass);
+
+    expect($mail->introLines)->toBe(['Your savings update: matured.', 'Principal: NGN 90071992547409.93',
+        'Net Interest: NGN 0.01', 'Remaining Debt: NGN 0.00']);
 });
 
 test('bounded processing resumes after interruption and cannot settle before final accrual', function () {

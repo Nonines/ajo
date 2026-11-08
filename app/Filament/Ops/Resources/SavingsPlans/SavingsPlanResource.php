@@ -5,7 +5,7 @@ namespace App\Filament\Ops\Resources\SavingsPlans;
 use App\Filament\Ops\Resources\SavingsPlans\Pages\ManageSavingsPlans;
 use App\Models\SavingsPlan;
 use App\Models\Staff;
-use App\Support\Approvals;
+use App\Support\Auth\Approvals;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -24,6 +24,9 @@ class SavingsPlanResource extends Resource
 {
     protected static ?string $model = SavingsPlan::class;
 
+    /**
+     * Restricts this view to eligible staff with customers.view permission.
+     */
     public static function canViewAny(): bool
     {
         $staff = Filament::auth()->user();
@@ -46,9 +49,13 @@ class SavingsPlanResource extends Resource
         return false;
     }
 
+    /**
+     * Builds proposal actions so staff cannot directly rewrite plan state or settlement terms.
+     */
     public static function table(Table $table): Table
     {
         $actions = [];
+
         foreach (['hold' => 'active', 'release' => 'suspended'] as $action => $state) {
             $actions[] = Action::make($action)->label('Propose '.$action)->schema([Textarea::make('reason')->required()->maxLength(10000)])
                 ->visible(fn (SavingsPlan $record): bool => (string) $record->state === $state
@@ -59,6 +66,8 @@ class SavingsPlanResource extends Resource
                     app(Approvals::class)->propose($staff, 'plan.'.$action, $record, [], $data['reason']);
                 });
         }
+
+        // Keep waiver caps separate from administrative correction evidence.
         $actions[] = Action::make('waive')->label('Propose penalty waiver')
             ->schema([TextInput::make('interest_cap')->label('Interest-forfeiture waiver cap (kobo)')->default('0')->required()->rules(['regex:/^(0|[1-9][0-9]*)$/D']),
                 TextInput::make('principal_cap')->label('Principal-penalty waiver cap (kobo)')->default('0')->required()->rules(['regex:/^(0|[1-9][0-9]*)$/D']),
@@ -91,6 +100,7 @@ class SavingsPlanResource extends Resource
         abort_unless($staff instanceof Staff, 403);
         $reason = $data['reason'];
         unset($data['reason']);
+
         try {
             app(Approvals::class)->propose($staff, $action, $record, $data, $reason);
         } catch (\DomainException $exception) {

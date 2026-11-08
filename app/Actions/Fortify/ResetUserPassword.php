@@ -7,6 +7,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;
 
+/**
+ * Applies shared password validation before updating the customer password.
+ */
 class ResetUserPassword implements ResetsUserPasswords
 {
     use PasswordValidationRules;

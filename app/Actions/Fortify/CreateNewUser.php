@@ -5,11 +5,14 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
-use App\Support\FinancialTransaction;
-use App\Support\Wallets;
+use App\Support\Ledger\FinancialTransaction;
+use App\Support\Ledger\Wallets;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
+/**
+ * Creates the customer and empty ledger accounts in one financial transaction.
+ */
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;

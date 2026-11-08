@@ -7,8 +7,14 @@ use Illuminate\Http\Request;
 use Laravel\Horizon\Horizon;
 use Laravel\Horizon\HorizonApplicationServiceProvider;
 
+/**
+ * Protects queue monitoring with the staff guard in every environment.
+ */
 class HorizonServiceProvider extends HorizonApplicationServiceProvider
 {
+    /**
+     * Requires an active administrator with monitoring permission and configured app authentication.
+     */
     protected function authorization(): void
     {
         // Apply staff authorization in every environment, including local.

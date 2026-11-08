@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Support\PaymentInbox;
+use App\Support\Payments\PaymentInbox;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -22,6 +22,9 @@ class ProcessPaymentWebhook implements ShouldQueue
         $this->onConnection('redis')->onQueue('webhooks')->afterCommit();
     }
 
+    /**
+     * Processes the persisted receipt through claim ownership and provider verification.
+     */
     public function handle(PaymentInbox $service): void
     {
         $service->process($this->eventId);

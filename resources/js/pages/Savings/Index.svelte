@@ -24,20 +24,20 @@
 </script>
 
 <AppHead title="Fixed-term savings" />
-<div class="flex flex-1 flex-col gap-8 p-6 sm:p-10">
-    <section class="rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[4px_4px_0_var(--foreground)]">
-        <p class="font-mono text-xs font-bold tracking-widest uppercase">Your savings / fixed term</p>
-        <h1 class="mt-4 font-display text-4xl font-black">Give your plans time.</h1>
+<div class="page-stack">
+    <section class="page-intro">
+        <p class="eyebrow">Your savings / fixed term</p>
+        <h1 class="mt-4 font-display text-4xl font-black tracking-[-.045em]">Give your plans time.</h1>
         <p class="mt-4">Set aside a lump sum from your wallet. Review the fixed rate, interest mode and withdrawal terms before funding.</p>
     </section>
     {#if remainingDebt !== '0'}
-        <p class="rounded-md border-2 border-foreground bg-card p-6">Recovery balance: {formatMoney(remainingDebt)}. Repay this balance before funding a new plan. Existing contracts continue earning under their original terms; net maturity proceeds repay debt first.</p>
+        <p class="panel">Recovery balance: {formatMoney(remainingDebt)}. Repay this balance before funding a new plan. Existing contracts continue earning under their original terms; net maturity proceeds repay debt first.</p>
     {/if}
     <section class="grid gap-6 md:grid-cols-2" aria-label="Available savings products">
         {#if products.length === 0}<p>No products are currently available. Your existing savings remain below.</p>{/if}
         {#each products as product (product.id)}
-            <article class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-                <h2 class="text-2xl font-bold">{product.contract.name}</h2>
+            <article class="grid gap-4 panel">
+                <h2 class="section-title border-b border-foreground/20 pb-5">{product.contract.name}</h2>
                 <p class="whitespace-pre-wrap">{product.contract.disclosure}</p>
                 <p>Principal: {formatMoney(product.contract.minimum)} to {formatMoney(product.contract.maximum)}. {product.contract.interest === 'simple' ? 'Simple interest' : product.contract.interest === 'daily' ? 'Daily compounding' : 'Compounding every 30 days'} on Actual/365. Withholding: {formatBasisPoints(product.contract.withholding_bp)} of retained interest. Plan fees: {formatMoney(product.contract.fee)}.</p>
                 {#if product.contract.lock === 'terminable'}
@@ -64,12 +64,12 @@
         {/each}
     </section>
     <section class="grid gap-4">
-        <h2 class="font-display text-3xl font-black">Your plans.</h2>
-        {#if plans.data.length === 0}<p>No savings plans yet.</p>{/if}
+        <h2 class="font-display text-2xl font-bold tracking-tight">Your plans.</h2>
+        {#if plans.data.length === 0}<p class="empty-state">A little room for future you. Your savings plans will appear here once you create one.</p>{/if}
         {#each plans.data as plan (plan.id)}
-            <Link href={show(plan.id)} class="flex flex-wrap justify-between gap-3 rounded-md border-2 border-foreground bg-card p-6 underline">
+            <Link href={show(plan.id)} class="flex flex-wrap justify-between gap-3 record-link">
                 <span>{plan.contract.name} / {plan.contract.days} days</span>
-                <span>{formatMoney(plan.contract.principal)} / {plan.state.replaceAll('_', ' ')}</span>
+                <span class="flex flex-wrap items-center gap-4"><strong class="font-mono">{formatMoney(plan.contract.principal)}</strong><span class="status-label">{plan.state.replaceAll('_', ' ')}</span></span>
             </Link>
         {/each}
         <nav class="flex gap-4" aria-label="Savings pages">

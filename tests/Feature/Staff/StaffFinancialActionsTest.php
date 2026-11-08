@@ -5,7 +5,7 @@ use App\Filament\Ops\Resources\WithdrawalRequests\Pages\ManageWithdrawalRequests
 use App\Filament\Resources\AuditEvents\Pages\ManageAuditEvents;
 use App\Jobs\DispatchWithdrawal;
 use App\Models\AuditEvent;
-use App\Support\FrozenClock;
+use App\Support\Clock\FrozenClock;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;

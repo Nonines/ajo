@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Support\ReadOnlyLedgerBuilder;
+use App\Support\Ledger\ReadOnlyLedgerBuilder;
 use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;

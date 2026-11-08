@@ -5,7 +5,7 @@ namespace App\Filament\Resources\AuditEvents;
 use App\Filament\Resources\AuditEvents\Pages\ManageAuditEvents;
 use App\Models\AuditEvent;
 use App\Models\Staff;
-use App\Support\AuditTrail;
+use App\Support\Audit\AuditTrail;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
@@ -20,6 +20,9 @@ class AuditEventResource extends Resource
 {
     protected static ?string $model = AuditEvent::class;
 
+    /**
+     * Restricts this view to eligible staff with audit.view permission.
+     */
     public static function canViewAny(): bool
     {
         $staff = Filament::auth()->user();
@@ -38,6 +41,7 @@ class AuditEventResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $staff = Filament::auth()->user();
+
         if ($staff instanceof Staff && static::canViewAny()) {
             app(AuditTrail::class)->record('staff.audit_read', actor: $staff);
         }
@@ -55,6 +59,9 @@ class AuditEventResource extends Resource
         return false;
     }
 
+    /**
+     * Shows sealed event evidence without exposing mutation actions.
+     */
     public static function table(Table $table): Table
     {
         return $table->defaultSort('id', 'desc')->columns([

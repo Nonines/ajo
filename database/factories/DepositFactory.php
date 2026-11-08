@@ -4,7 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Deposit;
 use App\Models\User;
-use App\Support\DepositStates\PendingConfirmation;
+use App\Support\Payments\DepositStates\PendingConfirmation;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 

@@ -4,19 +4,24 @@ namespace App\Providers;
 
 use App\Contracts\Clock;
 use App\Contracts\PaymentGateway;
-use App\Support\AuditTrail;
-use App\Support\FinancialTransaction;
-use App\Support\PaymentGateways;
-use App\Support\SecurityAudit;
-use App\Support\SystemClock;
+use App\Support\Audit\AuditTrail;
+use App\Support\Audit\SecurityAudit;
+use App\Support\Clock\DemoClock;
+use App\Support\Clock\SystemClock;
+use App\Support\Ledger\FinancialTransaction;
+use App\Support\Payments\PaymentGateways;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Events\ConnectionEstablished;
+use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Binds financial infrastructure and registers audit protections and application defaults.
+ */
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -24,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(Clock::class, SystemClock::class);
+        $this->app->singleton(Clock::class, fn () => app()->environment('demo') ? new DemoClock : new SystemClock);
         // Keep held-lock and audit-writer state shared within one request or job, then discard it.
         $this->app->scoped(FinancialTransaction::class);
         $this->app->scoped(AuditTrail::class);
@@ -36,6 +41,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Event::listen(JobExceptionOccurred::class, function (): void {
+            if (app()->environment('demo')) {
+                DB::table('demo_state')->where('id', 1)->update(['failure' => 'A demo job failed. Inspect application logs, then resume.']);
+            }
+        });
         Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $event): void {
             if ($event->connection->getDriverName() === 'sqlite') {
                 // Deletion triggers deny audit removal unless verified maintenance temporarily enables it.

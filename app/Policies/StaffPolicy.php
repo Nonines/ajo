@@ -4,6 +4,9 @@ namespace App\Policies;
 
 use App\Models\Staff;
 
+/**
+ * Restricts staff management and prevents deletion of staff identities.
+ */
 class StaffPolicy
 {
     public function viewAny(Staff $user): bool

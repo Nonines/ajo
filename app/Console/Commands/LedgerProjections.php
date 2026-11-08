@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Support\Ledger;
+use App\Support\Ledger\Ledger;
 use Illuminate\Console\Command;
 
 /**
@@ -14,17 +14,23 @@ class LedgerProjections extends Command
 
     protected $description = 'Verify or rebuild ledger balance projections';
 
+    /**
+     * Optionally rebuilds projections and reports any remaining ledger mismatches.
+     */
     public function handle(Ledger $ledger): int
     {
         if ($this->option('rebuild')) {
             $ledger->rebuildProjections();
         }
+
         $mismatches = $ledger->projectionMismatches();
+
         if ($mismatches !== []) {
             $this->error('Projection mismatch for accounts: '.implode(', ', $mismatches));
 
             return self::FAILURE;
         }
+
         $this->info('All balance projections match the ledger.');
 
         return self::SUCCESS;

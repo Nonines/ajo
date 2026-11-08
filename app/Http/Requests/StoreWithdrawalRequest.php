@@ -2,13 +2,18 @@
 
 namespace App\Http\Requests;
 
-use App\Support\Money;
-use Brick\Math\BigInteger;
+use App\Support\Money\Money;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates destination selection and positive, representable withdrawal amounts.
+ */
 class StoreWithdrawalRequest extends FormRequest
 {
+    /**
+     * Requires an active, email-verified customer before validating the operation.
+     */
     public function authorize(): bool
     {
         $user = $this->user('web');
@@ -37,8 +42,6 @@ class StoreWithdrawalRequest extends FormRequest
      */
     public function money(): Money
     {
-        [$naira, $fraction] = array_pad(explode('.', $this->string('amount')->toString(), 2), 2, '');
-
-        return new Money((string) BigInteger::of($naira)->multipliedBy(100)->plus(str_pad($fraction, 2, '0')));
+        return Money::fromNaira($this->string('amount')->toString());
     }
 }

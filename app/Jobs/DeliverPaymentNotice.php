@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Support\PaymentNotices;
+use App\Support\Payments\PaymentNotices;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -22,6 +22,9 @@ class DeliverPaymentNotice implements ShouldQueue
         $this->onConnection('redis')->onQueue('default')->afterCommit();
     }
 
+    /**
+     * Delivers the saved notice through the service's deduplication and retry rules.
+     */
     public function handle(PaymentNotices $service): void
     {
         $service->deliver($this->noticeId);

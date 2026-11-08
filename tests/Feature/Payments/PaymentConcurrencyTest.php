@@ -3,10 +3,10 @@
 use App\Models\Deposit;
 use App\Models\LedgerAccount;
 use App\Models\User;
-use App\Support\Ledger;
-use App\Support\Money;
-use App\Support\PaymentInbox;
-use App\Support\Wallets;
+use App\Support\Ledger\Ledger;
+use App\Support\Ledger\Wallets;
+use App\Support\Money\Money;
+use App\Support\Payments\PaymentInbox;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 
@@ -28,13 +28,13 @@ Illuminate\Support\Facades\Http::fake(['api.paystack.co/transaction/verify/'.$de
 ]])]);
 try {
     if ($argv[3] === 'webhook') {
-        app(App\Support\PaymentInbox::class)->process((int) $argv[4]);
+        app(App\Support\Payments\PaymentInbox::class)->process((int) $argv[4]);
     } elseif ($argv[3] === 'close') {
-        app(App\Support\Wallets::class)->close(App\Models\User::findOrFail($deposit->user_id));
+        app(App\Support\Ledger\Wallets::class)->close(App\Models\User::findOrFail($deposit->user_id));
     } elseif ($argv[3] === 'sweep') {
-        (new App\Jobs\VerifyDeposit($deposit->id))->handle(app(App\Support\Deposits::class));
+        (new App\Jobs\VerifyDeposit($deposit->id))->handle(app(App\Support\Payments\Deposits::class));
     } else {
-        app(App\Support\Deposits::class)->verify($deposit);
+        app(App\Support\Payments\Deposits::class)->verify($deposit);
     }
     echo "done\n";
 } catch (Throwable $exception) {

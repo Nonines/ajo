@@ -1,7 +1,7 @@
 <?php
 
 use App\Contracts\Clock;
-use App\Support\FrozenClock;
+use App\Support\Clock\FrozenClock;
 use Carbon\CarbonImmutable;
 
 test('the system clock returns the current immutable UTC instant', function () {

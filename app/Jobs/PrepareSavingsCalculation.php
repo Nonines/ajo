@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Support\SavingsAccrual;
+use App\Support\Savings\SavingsAccrual;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 

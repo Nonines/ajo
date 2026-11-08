@@ -20,6 +20,7 @@ class DepositConfirmationController extends Controller
     {
         abort_unless($request->user('web')->is_active, 403);
         abort_unless($deposit->user_id === $request->user('web')->id, 404);
+
         try {
             VerifyDeposit::dispatch($deposit->id);
         } catch (Throwable) {

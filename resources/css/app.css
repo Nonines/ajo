@@ -166,3 +166,103 @@
         @apply bg-background text-foreground;
     }
 }
+
+@layer components {
+    .eyebrow {
+        @apply font-mono text-[11px] font-semibold tracking-[0.16em] uppercase;
+    }
+
+    .marketing-heading {
+        @apply font-display text-4xl leading-[1.05] font-black tracking-[-0.05em] sm:text-5xl lg:text-6xl;
+    }
+
+    .action-link {
+        @apply inline-flex min-h-12 items-center justify-center gap-4 rounded-sm border-2 border-foreground bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-[3px_3px_0_var(--foreground)] transition-colors hover:bg-primary/80;
+    }
+
+    .app-nav-link {
+        @apply inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold transition-colors;
+    }
+
+    .page-stack {
+        @apply flex min-w-0 flex-col gap-8;
+    }
+
+    .page-intro {
+        @apply border-b border-foreground/20 pb-8;
+    }
+
+    .page-intro h1 {
+        @apply font-display text-4xl leading-[1.1] font-black tracking-[-0.045em] sm:text-5xl;
+    }
+
+    .page-intro > p:last-child {
+        @apply max-w-2xl text-sm leading-relaxed text-muted-foreground;
+    }
+
+    .panel {
+        @apply min-w-0 rounded-md border border-foreground/25 bg-card p-6 sm:p-8;
+    }
+
+    .section-title {
+        @apply font-display text-2xl font-bold tracking-tight;
+    }
+
+    .empty-state {
+        @apply rounded-sm border border-dashed border-foreground/25 bg-muted/30 px-6 py-10 text-center text-sm leading-relaxed text-muted-foreground;
+    }
+
+    .money-summary {
+        @apply rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[5px_5px_0_var(--foreground)] sm:p-10;
+    }
+
+    .record-link {
+        @apply flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-md border border-foreground/25 bg-card p-6 text-sm transition-colors hover:bg-accent;
+    }
+
+    .status-label {
+        @apply inline-flex w-fit items-center rounded-full border border-current/25 px-3 py-1 font-mono text-[11px] font-semibold tracking-wide;
+    }
+
+    .receipt-grid {
+        @apply grid min-w-0 grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2;
+    }
+
+    .receipt-grid dt {
+        @apply text-muted-foreground;
+    }
+
+    .receipt-grid dd {
+        @apply min-w-0 font-medium break-words sm:text-right;
+    }
+
+    .customer-app input:not([type='checkbox'], [type='radio'], [type='hidden']),
+    .customer-auth
+        input:not([type='checkbox'], [type='radio'], [type='hidden']) {
+        @apply min-h-12 rounded-sm;
+    }
+
+    .customer-app select {
+        @apply h-auto min-h-12 max-w-full min-w-0 rounded-sm text-sm;
+    }
+
+    .customer-app button:not([role='checkbox']),
+    .customer-auth button:not([role='checkbox']) {
+        @apply min-h-11;
+    }
+
+    .skip-link {
+        @apply fixed top-3 left-3 z-50 -translate-y-24 border-2 border-foreground bg-primary px-5 py-3 font-bold text-primary-foreground focus:translate-y-0;
+    }
+}
+
+@layer base {
+    a:focus-visible,
+    summary:focus-visible {
+        @apply rounded-sm outline-2 outline-offset-4 outline-ring;
+    }
+
+    html {
+        scroll-padding-bottom: 6rem;
+    }
+}

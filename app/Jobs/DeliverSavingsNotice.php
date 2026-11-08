@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Support\SavingsNotices;
+use App\Support\Savings\SavingsNotices;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -22,6 +22,9 @@ class DeliverSavingsNotice implements ShouldQueue
         $this->onConnection('redis')->onQueue('default')->afterCommit();
     }
 
+    /**
+     * Delivers the saved savings notice without repeating its financial effect.
+     */
     public function handle(SavingsNotices $notices): void
     {
         $notices->deliver($this->noticeId);

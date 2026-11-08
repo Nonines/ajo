@@ -6,6 +6,9 @@ use App\Concerns\PasswordValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Requires the current password before accepting a confirmed replacement.
+ */
 class PasswordUpdateRequest extends FormRequest
 {
     use PasswordValidationRules;

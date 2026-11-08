@@ -5,7 +5,7 @@ namespace App\Filament\Ops\Resources\ApprovalRequests;
 use App\Filament\Ops\Resources\ApprovalRequests\Pages\ManageApprovalRequests;
 use App\Models\ApprovalRequest;
 use App\Models\Staff;
-use App\Support\Approvals;
+use App\Support\Auth\Approvals;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Textarea;
@@ -22,6 +22,9 @@ class ApprovalRequestResource extends Resource
 {
     protected static ?string $model = ApprovalRequest::class;
 
+    /**
+     * Restricts this view to eligible staff with customers.view permission.
+     */
     public static function canViewAny(): bool
     {
         $staff = Filament::auth()->user();
@@ -44,15 +47,20 @@ class ApprovalRequestResource extends Resource
         return false;
     }
 
+    /**
+     * Builds distinct-staff decision actions that delegate financial changes to Approvals.
+     */
     public static function table(Table $table): Table
     {
         $actions = [];
+
         foreach (['approve' => true, 'reject' => false] as $name => $accept) {
             $actions[] = Action::make($name)->schema([Textarea::make('reason')->required()->maxLength(10000)])
                 ->visible(fn (ApprovalRequest $record): bool => $record->state === 'pending' && $record->requested_by !== Filament::auth()->id())
                 ->action(function (ApprovalRequest $record, array $data) use ($accept): void {
                     $staff = Filament::auth()->user();
                     abort_unless($staff instanceof Staff, 403);
+
                     try {
                         app(Approvals::class)->decide($staff, $record, $accept, $data['reason']);
                     } catch (\DomainException $exception) {

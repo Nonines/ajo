@@ -21,16 +21,16 @@
 </script>
 
 <AppHead title="Withdrawal status" />
-<div class="flex flex-1 flex-col gap-8 p-6 sm:p-10">
-    {#if withdrawal.simulated}<p class="rounded-md border-2 border-foreground bg-card p-6">This is an explicitly simulated payout. No real provider transfer is sent.</p>{/if}
-    <section class="rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[4px_4px_0_var(--foreground)]">
-        <p class="font-mono text-xs font-bold tracking-widest uppercase">Withdrawal / {withdrawal.state.replaceAll('_', ' ')}</p>
-        <h1 class="mt-4 font-display text-4xl font-black">{formatMoney(withdrawal.principal)}</h1>
+<div class="page-stack mx-auto w-full max-w-3xl">
+    {#if withdrawal.simulated}<p class="panel">This is an explicitly simulated payout. No real provider transfer is sent.</p>{/if}
+    <section class="money-summary">
+        <p class="eyebrow">Withdrawal / {withdrawal.state.replaceAll('_', ' ')}</p>
+        <h1 class="mt-4 font-display text-[clamp(1.75rem,6vw,3.5rem)] leading-tight font-black tracking-[-.045em] break-words">{formatMoney(withdrawal.principal)}</h1>
         <p class="mt-4 break-all text-sm">Reference: {withdrawal.reference}</p>
     </section>
-    <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6" aria-live="polite">
-        <h2 class="text-2xl font-bold">Your payout details</h2>
-        <dl class="grid grid-cols-2 gap-3">
+    <section class="grid gap-4 panel" aria-live="polite">
+        <h2 class="section-title">Your payout details</h2>
+        <dl class="receipt-grid">
             <dt>Destination</dt><dd>{withdrawal.accountName} / {withdrawal.bankName} / {withdrawal.accountNumber}</dd>
             <dt>Reserved fee</dt><dd>{formatMoney(withdrawal.reservedFee)}</dd>
             <dt>Actual incurred fee</dt><dd>{withdrawal.actualFee === null ? 'Awaiting verification' : formatMoney(withdrawal.actualFee)}</dd>

@@ -49,17 +49,17 @@
 </script>
 
 <AppHead title="Deposit status" />
-<div class="flex flex-1 flex-col gap-8 p-6 sm:p-10">
-    {#if deposit.origin === 'simulated'}<p class="rounded-md border-2 border-foreground bg-card p-6">This is an explicitly simulated payment. No real provider charge is made.</p>{/if}
-    <section class="rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[4px_4px_0_var(--foreground)]">
-        <p class="font-mono text-xs font-bold tracking-widest uppercase">Test payment / {deposit.state.replaceAll('_', ' ')}</p>
-        <h1 class="mt-4 font-display text-4xl font-black">{formatMoney(deposit.requestedNet)}</h1>
+<div class="page-stack mx-auto w-full max-w-3xl">
+    {#if deposit.origin === 'simulated'}<p class="panel">This is an explicitly simulated payment. No real provider charge is made.</p>{/if}
+    <section class="money-summary">
+        <p class="eyebrow">Test payment / {deposit.state.replaceAll('_', ' ')}</p>
+        <h1 class="mt-4 font-display text-[clamp(1.75rem,6vw,3.5rem)] leading-tight font-black tracking-[-.045em] break-words">{formatMoney(deposit.requestedNet)}</h1>
         <p class="mt-4 break-all text-sm">Reference: {deposit.reference}</p>
     </section>
-    <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6" aria-live="polite">
+    <section class="grid gap-4 panel" aria-live="polite">
         {#if deposit.recognizedAt}
-            <h2 class="text-2xl font-bold">Verified deposit receipt</h2>
-            <dl class="grid grid-cols-2 gap-3">
+            <h2 class="section-title">Verified deposit receipt</h2>
+            <dl class="receipt-grid">
                 <dt>Total charged</dt><dd class="text-right font-mono">{formatMoney(deposit.gross)}</dd>
                 <dt>Processing fee</dt><dd class="text-right font-mono">{formatMoney(deposit.fee)}</dd>
                 <dt>Net customer value</dt><dd class="text-right font-mono">{formatMoney(deposit.requestedNet)}</dd>
@@ -67,7 +67,7 @@
                 <dt>Wallet credit</dt><dd class="text-right font-mono">{formatMoney(deposit.walletCredit)}</dd>
             </dl>
         {:else}
-            <h2 class="text-2xl font-bold">Awaiting verified payment</h2>
+            <h2 class="section-title">Awaiting verified payment</h2>
             <p>Wallet credit is available after confirmation. A closed checkout or delayed response does not establish the payment's final outcome.</p>
             {#if deposit.accessCode && ['initiated', 'pending_confirmation'].includes(deposit.state)}
                 <Button onclick={openCheckout} disabled={opening}>{opening ? 'Opening checkout…' : 'Pay with Paystack'}</Button>
@@ -78,9 +78,9 @@
         <Link href={wallet()} class="underline">View wallet</Link>
     </section>
     {#each reversals as reversal (reversal.id)}
-        <section class="rounded-md border-2 border-foreground bg-card p-6">
+        <section class="panel">
             <h2 class="text-xl font-bold">Verified reversal</h2>
-            <dl class="mt-4 grid grid-cols-2 gap-3">
+            <dl class="mt-4 receipt-grid">
                 <dt>Principal recovered</dt><dd class="text-right">{formatMoney(reversal.principal)}</dd>
                 <dt>Attributable fees</dt><dd class="text-right">{formatMoney(reversal.fee)}</dd>
                 <dt>Collected from wallet</dt><dd class="text-right">{formatMoney(reversal.walletCollected)}</dd>
@@ -88,5 +88,5 @@
             </dl>
         </section>
     {/each}
-    {#if remainingDebt !== '0'}<p class="rounded-md border-2 border-foreground bg-card p-6">Remaining recovery balance: <strong>{formatMoney(remainingDebt)}</strong>. Incoming funds repay this before any wallet remainder becomes available.</p>{/if}
+    {#if remainingDebt !== '0'}<p class="panel">Remaining recovery balance: <strong>{formatMoney(remainingDebt)}</strong>. Incoming funds repay this before any wallet remainder becomes available.</p>{/if}
 </div>

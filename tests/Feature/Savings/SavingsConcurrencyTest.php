@@ -3,11 +3,11 @@
 use App\Contracts\Clock;
 use App\Models\LedgerAccount;
 use App\Models\SavingsPlan;
-use App\Support\Approvals;
-use App\Support\FrozenClock;
-use App\Support\Ledger;
-use App\Support\SavingsPlans;
-use App\Support\SavingsSettlements;
+use App\Support\Auth\Approvals;
+use App\Support\Clock\FrozenClock;
+use App\Support\Ledger\Ledger;
+use App\Support\Savings\SavingsPlans;
+use App\Support\Savings\SavingsSettlements;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
@@ -20,17 +20,17 @@ $app = require getcwd().'/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => $argv[1], 'ledger.lock_store' => 'redis']);
 Illuminate\Support\Facades\DB::purge('sqlite');
-$app->instance(App\Contracts\Clock::class, new App\Support\FrozenClock(Carbon\CarbonImmutable::parse(match ($argv[3]) { 'settle', 'boundary-exit' => '2028-03-30T00:00:00Z', 'exit', 'waiver' => '2028-03-10T10:00:00Z', default => '2028-02-28T00:00:00Z' })));
+$app->instance(App\Contracts\Clock::class, new App\Support\Clock\FrozenClock(Carbon\CarbonImmutable::parse(match ($argv[3]) { 'settle', 'boundary-exit' => '2028-03-30T00:00:00Z', 'exit', 'waiver' => '2028-03-10T10:00:00Z', default => '2028-02-28T00:00:00Z' })));
 Illuminate\Support\Facades\Queue::fake([App\Jobs\DeliverSavingsNotice::class]);
 try {
     $plan = App\Models\SavingsPlan::findOrFail((int) $argv[2]);
     if ($argv[3] === 'settle') {
-        app(App\Support\SavingsProcessing::class)->process($plan->id);
+        app(App\Support\Savings\SavingsProcessing::class)->process($plan->id);
     } elseif (in_array($argv[3], ['exit', 'waiver', 'boundary-exit'], true)) {
         $waiver = $argv[3] === 'waiver' ? Illuminate\Support\Facades\DB::table('plan_waivers')->where('savings_plan_id', $plan->id)->sole()->id : null;
-        app(App\Support\SavingsSettlements::class)->terminate($plan->user, $plan, $argv[4], $waiver);
+        app(App\Support\Savings\SavingsSettlements::class)->terminate($plan->user, $plan, $argv[4], $waiver);
     } else {
-        app(App\Support\SavingsPlans::class)->fund($plan->user, $plan);
+        app(App\Support\Savings\SavingsPlans::class)->fund($plan->user, $plan);
     }
     echo "success";
 } catch (Throwable $exception) {

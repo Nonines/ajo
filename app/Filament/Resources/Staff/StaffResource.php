@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Staff;
 
 use App\Filament\Resources\Staff\Pages\ManageStaff;
 use App\Models\Staff;
-use App\Support\SecurityAudit;
+use App\Support\Audit\SecurityAudit;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -29,6 +29,9 @@ class StaffResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    /**
+     * Limits role and permission choices to the staff guard and preserves unchanged passwords.
+     */
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -51,6 +54,9 @@ class StaffResource extends Resource
             ]);
     }
 
+    /**
+     * Keeps staff edits transactional and records the resulting access permissions.
+     */
     public static function table(Table $table): Table
     {
         return $table

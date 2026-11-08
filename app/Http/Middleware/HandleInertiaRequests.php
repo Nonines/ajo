@@ -5,6 +5,9 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
+/**
+ * Shares customer identity and shell preferences across Inertia responses.
+ */
 class HandleInertiaRequests extends Middleware
 {
     /**

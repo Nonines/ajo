@@ -1,0 +1,100 @@
+<?php
+
+namespace App\Support\Ledger;
+
+use Closure;
+use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Sleep;
+use LogicException;
+use PDOException;
+use Throwable;
+
+/**
+ * Serializes financial writes with ordered customer locks and SQLite IMMEDIATE transactions.
+ */
+class FinancialTransaction
+{
+    /** @var array<int, Lock> */
+    private array $heldLocks = [];
+
+    /**
+     * Runs an operation under customer locks; only outermost SQLite contention is retried.
+     *
+     * @template T
+     *
+     * @param  list<int>  $customerIds
+     * @param  Closure(): T  $operation
+     * @return T
+     */
+    public function run(array $customerIds, Closure $operation): mixed
+    {
+        // Use one lock order for nested operations to avoid customer-lock deadlocks.
+        $customerIds = array_values(array_unique($customerIds));
+        sort($customerIds);
+        $locks = [];
+
+        try {
+            foreach ($customerIds as $id) {
+                if (isset($this->heldLocks[$id])) {
+                    continue;
+                }
+
+                if ($this->heldLocks !== [] && $id < max(array_keys($this->heldLocks))) {
+                    throw new LogicException('Nested financial operations must preserve customer lock ordering.');
+                }
+
+                $store = Cache::store(config('ledger.lock_store'))->getStore();
+
+                if (! $store instanceof LockProvider) {
+                    throw new LogicException('The wallet cache store must support locks.');
+                }
+
+                $lock = $store->lock('wallet:'.$id, config('ledger.lock_seconds'));
+                $lock->block(5);
+                $locks[$id] = $lock;
+                $this->heldLocks[$id] = $lock;
+            }
+
+            // Keep the database write serialized even when no customer lock is needed.
+            $connection = DB::connection();
+
+            if ($connection->getDriverName() !== 'sqlite' || $connection->getConfig('transaction_mode') !== 'IMMEDIATE') {
+                throw new LogicException('Financial writes require SQLite IMMEDIATE transactions.');
+            }
+
+            $level = $connection->transactionLevel();
+
+            for ($attempt = 0; ; $attempt++) {
+                try {
+                    return $connection->transaction($operation);
+                } catch (Throwable $exception) {
+                    if ($connection->transactionLevel() > $level) {
+                        $connection->rollBack($level);
+                    } elseif ($level === 0 && $connection->getPdo()->inTransaction()) {
+                        // SQLite keeps a transaction open after a busy COMMIT.
+                        $connection->getPdo()->rollBack();
+                    }
+
+                    // Retry the complete outer operation, including a contended BEGIN or COMMIT.
+                    if ($level > 0 || $attempt >= 4 || ! $exception instanceof PDOException || ! preg_match('/database (is locked|is busy|table is locked)/i', $exception->getMessage())) {
+                        throw $exception;
+                    }
+
+                    Sleep::usleep(20000 * ($attempt + 1));
+                }
+            }
+        } finally {
+            // Release only locks acquired here; outer operations retain their locks.
+            foreach (array_reverse($locks, preserve_keys: true) as $id => $lock) {
+                try {
+                    $lock->release();
+                } finally {
+                    unset($this->heldLocks[$id]);
+                }
+            }
+        }
+    }
+}

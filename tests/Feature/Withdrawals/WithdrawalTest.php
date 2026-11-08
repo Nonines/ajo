@@ -7,12 +7,22 @@ use App\Models\LedgerAccount;
 use App\Models\PaymentException;
 use App\Models\SavedDestination;
 use App\Models\User;
-use App\Support\Approvals;
-use App\Support\AuditTrail;
-use App\Support\FrozenClock;
-use App\Support\Ledger;
-use App\Support\Money;
-use App\Support\Withdrawals;
+use App\Models\WithdrawalRequest;
+use App\Support\Audit\AuditTrail;
+use App\Support\Auth\Approvals;
+use App\Support\Clock\FrozenClock;
+use App\Support\Ledger\Ledger;
+use App\Support\Money\Money;
+use App\Support\Withdrawals\Withdrawals;
+use App\Support\Withdrawals\WithdrawalStates\Approved;
+use App\Support\Withdrawals\WithdrawalStates\Cancelled;
+use App\Support\Withdrawals\WithdrawalStates\Failed;
+use App\Support\Withdrawals\WithdrawalStates\Paid;
+use App\Support\Withdrawals\WithdrawalStates\QueuedForPayout;
+use App\Support\Withdrawals\WithdrawalStates\Rejected;
+use App\Support\Withdrawals\WithdrawalStates\Requested;
+use App\Support\Withdrawals\WithdrawalStates\Reversed;
+use App\Support\Withdrawals\WithdrawalStates\UnderReview;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Http;
@@ -22,6 +32,24 @@ beforeEach(function (): void {
     app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2026-11-07T10:00:00Z')));
     config(['payments.secret_key' => 'sk_test_fixture']);
 });
+
+test('persisted withdrawal aliases hydrate their lifecycle states', function (string $alias, string $class): void {
+    $withdrawal = WithdrawalRequest::factory()->make();
+    $withdrawal->setRawAttributes(['state' => $alias], sync: true);
+
+    expect($withdrawal->state)->toBeInstanceOf($class);
+    expect((string) $withdrawal->state)->toBe($alias);
+})->with([
+    ['requested', Requested::class],
+    ['under_review', UnderReview::class],
+    ['approved', Approved::class],
+    ['queued_for_payout', QueuedForPayout::class],
+    ['rejected', Rejected::class],
+    ['cancelled', Cancelled::class],
+    ['paid', Paid::class],
+    ['failed', Failed::class],
+    ['reversed', Reversed::class],
+]);
 
 test('withdrawal reserves principal plus fee once and binds review to the whole reservation', function (int $principal, bool $checker): void {
     $withdrawal = requestedPayout($principal);

@@ -4,8 +4,14 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates customer bank details before independent provider resolution.
+ */
 class StoreDestinationRequest extends FormRequest
 {
+    /**
+     * Requires an active, email-verified customer before validating the operation.
+     */
     public function authorize(): bool
     {
         $user = $this->user('web');

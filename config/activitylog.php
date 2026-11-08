@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\AuditEvent;
-use App\Support\LogProtectedActivity;
-use App\Support\PreventAuditCleanup;
+use App\Support\Audit\LogProtectedActivity;
+use App\Support\Audit\PreventAuditCleanup;
 
 return [
     'enabled' => true,

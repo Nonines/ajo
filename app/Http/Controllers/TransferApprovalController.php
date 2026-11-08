@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\Withdrawals;
+use App\Support\Withdrawals\Withdrawals;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 

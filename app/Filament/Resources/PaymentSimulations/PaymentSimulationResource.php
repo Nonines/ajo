@@ -5,7 +5,7 @@ namespace App\Filament\Resources\PaymentSimulations;
 use App\Filament\Resources\PaymentSimulations\Pages\ManagePaymentSimulations;
 use App\Models\PaymentSimulation;
 use App\Models\Staff;
-use App\Support\PaymentSimulator;
+use App\Support\Payments\PaymentSimulator;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -15,18 +15,21 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Exposes outcome scenarios only to permitted administrators in enabled local or test environments.
+ * Exposes outcome scenarios only to permitted administrators in enabled local, testing, or demo environments.
  */
 class PaymentSimulationResource extends Resource
 {
     protected static ?string $model = PaymentSimulation::class;
 
+    /**
+     * Restricts this view to eligible staff with simulator.use permission.
+     */
     public static function canViewAny(): bool
     {
         $staff = Filament::auth()->user();
 
         return $staff instanceof Staff && $staff->is_active && $staff->hasRole('admin') && $staff->can('simulator.use')
-            && app()->environment(['local', 'testing']) && config('withdrawals.simulation_enabled') === true;
+            && app()->environment(['local', 'testing', 'demo']) && config('withdrawals.simulation_enabled') === true;
     }
 
     public static function canCreate(): bool
@@ -44,6 +47,9 @@ class PaymentSimulationResource extends Resource
         return false;
     }
 
+    /**
+     * Routes selected simulated outcomes through ordinary verification paths.
+     */
     public static function table(Table $table): Table
     {
         return $table->defaultSort('id', 'desc')->columns([TextColumn::make('reference')->searchable(),

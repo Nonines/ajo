@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Support\AuditTrail;
+use App\Support\Audit\AuditTrail;
 use DomainException;
 use Spatie\Activitylog\Models\Activity;
 

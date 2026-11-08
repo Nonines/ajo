@@ -63,12 +63,16 @@
 </script>
 
 <AppHead title={plan.contract.name} />
-<div class="flex flex-1 flex-col gap-6 p-6 sm:p-10">
-    <h1 class="font-display text-4xl font-black">{plan.contract.name}</h1>
-    <p class="font-mono uppercase">{plan.state.replaceAll('_', ' ')} / plan {plan.id}</p>
-    {#if investigation}<p role="status" class="rounded-md border-2 border-foreground bg-card p-6">This plan requires investigation. Settlement is held while staff review the accrual evidence.</p>{/if}
-    <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-        <h2 class="text-2xl font-bold">Your fixed contract</h2>
+<div class="page-stack">
+    <div class="page-intro"><p class="eyebrow mb-4 text-muted-foreground">Your savings / plan {plan.id}</p><h1>{plan.contract.name}</h1><span class="status-label mt-5">{plan.state.replaceAll('_', ' ')}</span></div>
+    <section class="money-summary grid gap-8 lg:grid-cols-[1.4fr_1fr_1fr]" aria-label="Plan summary">
+        <div class="min-w-0"><p class="eyebrow mb-3">Original principal</p><p class="font-display text-3xl font-black tracking-tight break-words">{formatMoney(plan.contract.principal)}</p></div>
+        <div><p class="eyebrow mb-3">Nominal annual rate</p><p class="font-display text-3xl font-black tracking-tight">{formatBasisPoints(plan.contract.annual_rate_bp)}</p></div>
+        <div><p class="eyebrow mb-3">Fixed term</p><p class="font-display text-3xl font-black tracking-tight">{plan.contract.days} days</p></div>
+    </section>
+    {#if investigation}<p role="status" class="panel">This plan requires investigation. Settlement is held while staff review the accrual evidence.</p>{/if}
+    <section class="grid gap-4 panel">
+        <h2 class="section-title">Your fixed contract</h2>
         <p>Principal: {formatMoney(plan.contract.principal)}. Term: {plan.contract.days} full days. Nominal annual rate: {formatBasisPoints(plan.contract.annual_rate_bp)}, {plan.contract.interest === 'simple' ? 'simple interest' : plan.contract.interest === 'daily' ? 'daily compounding' : 'compounding every 30 days'} on Actual/365.</p>
         {#if plan.contract.lock === 'terminable'}
             <p>Early exit is available after {plan.contract.minimum_holding_days} full days from accrual start. Interest forfeiture: {formatBasisPoints(plan.contract.forfeiture_bp ?? '0')}, including compounded interest. Original-principal penalty: {formatBasisPoints(plan.contract.principal_penalty_bp ?? '0')}. Suspensions and recovery restrictions block early exit.</p>
@@ -100,8 +104,8 @@
         {#if plan.closureReason}<p>Closure: {plan.closureReason.replaceAll('_', ' ')}.</p>{/if}
     </section>
     {#if rolloverOpen}
-        <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-            <h2 class="text-2xl font-bold">Rollover at maturity</h2>
+        <section class="grid gap-4 panel">
+            <h2 class="section-title">Rollover at maturity</h2>
             <p>Rollover is off until you choose it. Renewal uses all product terms effective at maturity, including the rate, lock, holding period, penalties, withholding and limits. An eligible election continues into each child until you disable it.</p>
             <p>If renewal is unavailable or recovery restrictions apply, the plan settles to your wallet under recovery priority. Each child's interest starts at the next midnight in the application timezone after actual funding. Delays can leave a gap with no interest.</p>
             <Form {...update.form(plan.id)} class="grid gap-3">
@@ -126,15 +130,15 @@
         </section>
     {/if}
     {#if plan.parentPlanId || childPlanId}
-        <section class="grid gap-3 rounded-md border-2 border-foreground bg-card p-6">
-            <h2 class="text-2xl font-bold">Renewal history</h2>
+        <section class="grid gap-3 panel">
+            <h2 class="section-title">Renewal history</h2>
             {#if plan.parentPlanId}<Link href={show(plan.parentPlanId)} class="underline">Parent plan {plan.parentPlanId}</Link>{/if}
             {#if childPlanId}<Link href={show(childPlanId)} class="underline">Renewed into plan {childPlanId}</Link>{/if}
         </section>
     {/if}
     {#if ['active', 'suspended'].includes(plan.state) && plan.contract.lock === 'terminable'}
-        <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-            <h2 class="text-2xl font-bold">Close this plan early</h2>
+        <section class="grid gap-4 panel">
+            <h2 class="section-title">Close this plan early</h2>
             {#if exitUnavailable}<p role="status">{exitUnavailable}</p>
             {:else}
                 <p>The preview includes interest through the last completed date in the application timezone. The current partial day earns no interest. Review the deductions before confirming full closure.</p>
@@ -166,15 +170,15 @@
         </section>
     {/if}
     {#if waivers.length > 0 || waiverRequests.length > 0}
-        <section class="grid gap-3 rounded-md border-2 border-foreground bg-card p-6">
-            <h2 class="text-2xl font-bold">Penalty waivers</h2>
+        <section class="grid gap-3 panel">
+            <h2 class="section-title">Penalty waivers</h2>
             {#each waiverRequests as request (request.id)}<p>Request {request.id}: {request.state}.</p>{/each}
             {#each waivers as waiver (waiver.id)}<p>Waiver {waiver.id}: {waiver.status}. Forfeiture cap {formatMoney(waiver.interestCap)}; principal-penalty cap {formatMoney(waiver.principalCap)}. Expires {waiver.expiresAt} UTC.</p>{/each}
         </section>
     {/if}
     {#if statement}
-        <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-            <h2 class="text-2xl font-bold">Settlement statement</h2>
+        <section class="grid gap-4 panel">
+            <h2 class="section-title">Settlement statement</h2>
             <dl class="grid gap-3 sm:grid-cols-2">
                 {#each [['principal', 'Original principal'], ['remaining_principal', 'Principal after penalty'], ['gross_interest', 'Gross interest'], ['capitalized_interest', 'Previously compounded interest'], ['forfeiture', 'Interest forfeited'], ['principal_penalty', 'Principal penalty'], ['waived_forfeiture', 'Forfeiture waived'], ['waived_penalty', 'Principal penalty waived'], ['incurred_fees', 'Plan processing fees'], ['withholding', 'Withholding tax'], ['net_interest', 'Net interest'], ['remaining_debt', 'Remaining recovery balance'], ['debt_repayment', 'Applied to recovery'], ['wallet_credit', 'Paid to wallet']] as [key, label] (key)}
                     <div><dt class="font-bold">{label}</dt><dd>{formatMoney(statement[key])}</dd></div>
@@ -183,9 +187,9 @@
             <p>Final rounding adjustment: {statement.rounding_micro_kobo} micro-kobo (1,000,000 per kobo). Posted {statement.posted_at} UTC.</p>
         </section>
     {/if}
-    <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-        <h2 class="text-2xl font-bold">Compounding history</h2>
-        {#if capitalizations.data.length === 0}<p>No interest capitalization events.</p>{/if}
+    <section class="grid gap-4 panel">
+        <h2 class="section-title">Compounding history</h2>
+        {#if capitalizations.data.length === 0}<p class="empty-state">No interest capitalization events yet.</p>{/if}
         {#each capitalizations.data as capitalization (capitalization.date)}
             <p>{capitalization.date} (application date): {formatMoney(capitalization.amount)} added to interest-bearing principal, {formatMoney(capitalization.cumulative)} total compounded.</p>
         {/each}
@@ -194,10 +198,10 @@
             {#if capitalizations.next_page_url}<Link href={show(plan.id, { query: { capitalizations_page: new URL(capitalizations.next_page_url).searchParams.get('capitalizations_page') } })}>Next</Link>{/if}
         </nav>
     </section>
-    <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-        <h2 class="text-2xl font-bold">Interest history</h2>
+    <section class="grid gap-4 panel">
+        <h2 class="section-title">Interest history</h2>
         <p>Daily amounts retain fractions in micro-kobo. The ledger recognizes changes in rounded cumulative interest.</p>
-        {#if accruals.data.length === 0}<p>No completed accrual days yet.</p>{/if}
+        {#if accruals.data.length === 0}<p class="empty-state">Your interest history will appear here after the first completed accrual day.</p>{/if}
         {#each accruals.data as accrual (accrual.date)}
             <div class="flex flex-wrap justify-between gap-2 border-b border-border py-3"><span>{accrual.date} (application date)</span><span>{accrual.microKobo} micro-kobo earned / {formatMoney(accrual.recognized)} total recognized</span></div>
         {/each}

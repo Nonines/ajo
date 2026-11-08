@@ -10,12 +10,12 @@ use App\Models\PaymentReversal;
 use App\Models\SavedDestination;
 use App\Models\User;
 use App\Models\WithdrawalRequest;
-use App\Support\AuditTrail;
-use App\Support\Deposits;
-use App\Support\FrozenClock;
-use App\Support\Ledger;
-use App\Support\Money;
-use App\Support\Withdrawals;
+use App\Support\Audit\AuditTrail;
+use App\Support\Clock\FrozenClock;
+use App\Support\Ledger\Ledger;
+use App\Support\Money\Money;
+use App\Support\Payments\Deposits;
+use App\Support\Withdrawals\Withdrawals;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -31,19 +31,19 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => $argv[1], 'ledger.lock_store' => 'redis',
     'cache.default' => 'array', 'payments.secret_key' => 'sk_test_fixture', 'audit.keys.v1' => 'test-only-audit-chain-key-at-least-32-bytes']);
 Illuminate\Support\Facades\DB::purge('sqlite');
-$app->instance(App\Contracts\Clock::class, new App\Support\FrozenClock(Carbon\CarbonImmutable::parse('2026-11-07T10:00:00Z')));
+$app->instance(App\Contracts\Clock::class, new App\Support\Clock\FrozenClock(Carbon\CarbonImmutable::parse('2026-11-07T10:00:00Z')));
 Illuminate\Support\Facades\Queue::fake([App\Jobs\DispatchWithdrawal::class, App\Jobs\VerifyWithdrawal::class, App\Jobs\DeliverPaymentNotice::class]);
 try {
     if ($argv[2] === 'request') {
         $saved = App\Models\SavedDestination::findOrFail((int) $argv[3]);
-        app(App\Support\Withdrawals::class)->request($saved->user, $saved, new App\Support\Money(100000), $argv[4]);
+        app(App\Support\Withdrawals\Withdrawals::class)->request($saved->user, $saved, new App\Support\Money\Money(100000), $argv[4]);
     } elseif ($argv[2] === 'audit') {
-        app(App\Support\AuditTrail::class)->record('concurrent.fixture', App\Models\User::findOrFail((int) $argv[3]));
+        app(App\Support\Audit\AuditTrail::class)->record('concurrent.fixture', App\Models\User::findOrFail((int) $argv[3]));
     } elseif ($argv[2] === 'recover') {
-        app(App\Support\Ledger::class)->recoverDeposit(App\Models\PaymentReversal::findOrFail((int) $argv[3]));
+        app(App\Support\Ledger\Ledger::class)->recoverDeposit(App\Models\PaymentReversal::findOrFail((int) $argv[3]));
     } elseif ($argv[2] === 'approval') {
         $w = App\Models\WithdrawalRequest::findOrFail((int) $argv[3]);
-        $allowed = app(App\Support\Withdrawals::class)->providerApproval(['reference' => $w->reference, 'amount' => (string) $w->principal,
+        $allowed = app(App\Support\Withdrawals\Withdrawals::class)->providerApproval(['reference' => $w->reference, 'amount' => (string) $w->principal,
             'recipient' => $w->destination['recipient_code'], 'currency' => 'NGN', 'source' => 'balance']);
         echo $allowed ? 'approved' : 'denied';
     } else {
@@ -65,7 +65,7 @@ try {
             'api.paystack.co/transfer/verify/'.$w->reference => Illuminate\Support\Facades\Http::response(['status' => true, 'data' => $data]),
             'api.paystack.co/transfer/'.($w->id + 20000) => Illuminate\Support\Facades\Http::response(['status' => true, 'data' => $data]),
         ]);
-        app(App\Support\Withdrawals::class)->dispatch($w);
+        app(App\Support\Withdrawals\Withdrawals::class)->dispatch($w);
     }
     echo "success";
 } catch (Throwable $exception) {
