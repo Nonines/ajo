@@ -5,6 +5,9 @@ namespace App\Console\Commands;
 use App\Support\Ledger;
 use Illuminate\Console\Command;
 
+/**
+ * Checks derived balance projections and optionally rebuilds them from immutable ledger entries.
+ */
 class LedgerProjections extends Command
 {
     protected $signature = 'ledger:projections {--rebuild : Rebuild projections from immutable entries}';

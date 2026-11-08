@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
 /**
+ * Records a signed whole-kobo debit or credit that belongs to an immutable journal.
+ *
  * @property int $id
  * @property int $journal_id
  * @property int $account_id
@@ -22,6 +24,9 @@ class LedgerEntry extends Model
 {
     public $timestamps = false;
 
+    /**
+     * Rejects model writes that would bypass the protected financial evidence path.
+     */
     protected static function booted(): void
     {
         static::saving(fn () => throw new LogicException('Use the ledger posting service.'));

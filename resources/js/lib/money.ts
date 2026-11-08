@@ -1,3 +1,4 @@
+// Keep kobo as BigInt through formatting so large balances never pass through a floating-point Number.
 export function formatMoney(kobo: string): string {
     const amount = BigInt(kobo);
     const absolute = amount < 0n ? -amount : amount;

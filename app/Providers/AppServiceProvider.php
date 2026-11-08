@@ -25,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Clock::class, SystemClock::class);
+        // Keep held-lock and audit-writer state shared within one request or job, then discard it.
         $this->app->scoped(FinancialTransaction::class);
         $this->app->scoped(AuditTrail::class);
         $this->app->bind(PaymentGateway::class, PaymentGateways::class);
@@ -37,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $event): void {
             if ($event->connection->getDriverName() === 'sqlite') {
+                // Deletion triggers deny audit removal unless verified maintenance temporarily enables it.
                 $event->connection->getPdo()->sqliteCreateFunction('audit_maintenance', static fn (): int => 0);
             }
         });

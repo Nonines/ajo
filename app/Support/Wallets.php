@@ -11,10 +11,16 @@ use App\Models\User;
 use App\Models\WithdrawalRequest;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Provisions customer ledger accounts and closes accounts while retaining financial evidence.
+ */
 class Wallets
 {
     public function __construct(private FinancialTransaction $transactions) {}
 
+    /**
+     * Ensures wallet liability and recovery receivable accounts exist without adding opening value.
+     */
     public function provision(User $user): LedgerAccount
     {
         return $this->transactions->run([$user->id], function () use ($user): LedgerAccount {
@@ -30,6 +36,9 @@ class Wallets
         });
     }
 
+    /**
+     * Records closure, then deactivates customers with retained history instead of deleting them.
+     */
     public function close(User $user): void
     {
         $this->transactions->run([$user->id], function () use ($user): void {

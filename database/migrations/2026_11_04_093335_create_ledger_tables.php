@@ -37,6 +37,7 @@ return new class extends Migration
             $table->bigInteger('amount');
             $table->index(['account_id', 'journal_id']);
         });
+        // Protect history at the database boundary as well as through Eloquent write guards.
         foreach (['journals', 'ledger_entries'] as $table) {
             foreach (['UPDATE', 'DELETE'] as $action) {
                 DB::unprepared("CREATE TRIGGER {$table}_no_{$action} BEFORE {$action} ON {$table} BEGIN SELECT RAISE(ABORT, 'Ledger history is immutable'); END");

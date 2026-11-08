@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
 /**
+ * Groups immutable balanced postings under an operation key and input fingerprint.
+ *
  * @property int $id
  * @property string $operation_key
  * @property string $fingerprint
@@ -22,6 +24,9 @@ class Journal extends Model
 {
     public $timestamps = false;
 
+    /**
+     * Rejects model writes that would bypass the protected financial evidence path.
+     */
     protected static function booted(): void
     {
         static::saving(fn () => throw new LogicException('Use the ledger posting service.'));

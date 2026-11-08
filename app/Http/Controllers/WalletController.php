@@ -9,8 +9,14 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Presents signed wallet liabilities as customer-facing balances and movements.
+ */
 class WalletController extends Controller
 {
+    /**
+     * Negates ledger liability signs so credits appear positive in the customer wallet history.
+     */
     public function index(Request $request): Response
     {
         $user = $request->user('web');

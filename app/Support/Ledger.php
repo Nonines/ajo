@@ -14,16 +14,26 @@ use DomainException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
+/**
+ * Posts balanced, replay-safe journals and maintains rebuildable account balance projections.
+ */
 class Ledger
 {
     public function __construct(private FinancialTransaction $transactions, private Clock $clock) {}
 
-    /** @param list<array{account_id: int, amount: Money}> $entries */
+    /**
+     * Posts signed kobo entries; reusing a key requires the same financial inputs.
+     *
+     * @param  list<array{account_id: int, amount: Money}>  $entries
+     */
     public function post(string $key, array $entries, string $effectiveDate, string $description, ?int $customerId = null, ?int $reversesId = null): Journal
     {
         return $this->write($key, $entries, $effectiveDate, $description, $customerId, $reversesId);
     }
 
+    /**
+     * Recovers a verified reversal from available wallet value, booking any shortfall as debt.
+     */
     public function recoverDeposit(PaymentReversal $reversal): Journal
     {
         $effect = PaymentReversal::findOrFail($reversal->id);
@@ -61,6 +71,9 @@ class Ledger
         });
     }
 
+    /**
+     * Reconciles the verified payout fee against its reservation and previously accounted fee.
+     */
     public function settleWithdrawalFee(WithdrawalRequest $withdrawal): void
     {
         $this->transactions->run([$withdrawal->user_id], function () use ($withdrawal): void {
@@ -108,7 +121,11 @@ class Ledger
         });
     }
 
-    /** @param list<array{account_id: int, amount: Money}> $entries */
+    /**
+     * Validates journal invariants and commits entries, projections, and audit evidence together.
+     *
+     * @param  list<array{account_id: int, amount: Money}>  $entries
+     */
     private function write(string $key, array $entries, string $effectiveDate, string $description, ?int $customerId = null, ?int $reversesId = null, bool $systemRecovery = false): Journal
     {
         $date = explode('-', $effectiveDate);
@@ -202,6 +219,9 @@ class Ledger
         });
     }
 
+    /**
+     * Posts the exact opposite of a journal without changing its original entries.
+     */
     public function reverse(Journal $journal, string $key, string $effectiveDate, string $description, ?int $customerId = null): Journal
     {
         $entries = [];
@@ -218,6 +238,9 @@ class Ledger
         return $this->post($key, $entries, $effectiveDate, $description, $customerId, $journal->id);
     }
 
+    /**
+     * Sums immutable entries, optionally through an economic effective date.
+     */
     public function balance(LedgerAccount $account, ?string $effectiveThrough = null): Money
     {
         $query = $account->entries();
@@ -232,6 +255,9 @@ class Ledger
         return new Money((string) $sum);
     }
 
+    /**
+     * Replaces cached account balances with totals derived from immutable entries.
+     */
     public function rebuildProjections(): void
     {
         $this->transactions->run([], function (): void {
@@ -241,7 +267,11 @@ class Ledger
         });
     }
 
-    /** @return list<int> */
+    /**
+     * Returns account IDs whose stored balances disagree with their entry totals.
+     *
+     * @return list<int>
+     */
     public function projectionMismatches(): array
     {
         $mismatches = [];

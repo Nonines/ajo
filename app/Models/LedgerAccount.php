@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * Identifies an account and its rebuildable signed balance; wallet liabilities are credit-negative.
+ *
  * @property int $id
  * @property string $code
  * @property string $type

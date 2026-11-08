@@ -12,12 +12,17 @@ use LogicException;
 use PDOException;
 use Throwable;
 
+/**
+ * Serializes financial writes with ordered customer locks and SQLite IMMEDIATE transactions.
+ */
 class FinancialTransaction
 {
     /** @var array<int, Lock> */
     private array $heldLocks = [];
 
     /**
+     * Runs an operation under customer locks; only outermost SQLite contention is retried.
+     *
      * @template T
      *
      * @param  list<int>  $customerIds

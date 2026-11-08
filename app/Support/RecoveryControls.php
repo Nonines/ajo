@@ -5,6 +5,9 @@ namespace App\Support;
 use App\Models\LedgerAccount;
 use App\Models\WithdrawalRequest;
 
+/**
+ * Derives spending restrictions and debt-first credit allocations from recovery receivables.
+ */
 class RecoveryControls
 {
     public function __construct(private Ledger $ledger) {}
@@ -19,6 +22,9 @@ class RecoveryControls
         return $this->balance($customerId) > 0;
     }
 
+    /**
+     * Cancels unsubmitted payout reservations while the customer has outstanding recovery debt.
+     */
     public function activate(int $customerId): void
     {
         if (! $this->restricted($customerId)) {
@@ -30,7 +36,11 @@ class RecoveryControls
         }
     }
 
-    /** @return list<array{account_id: int, amount: Money}> */
+    /**
+     * Builds credit entries that repay recovery debt before increasing spendable wallet value.
+     *
+     * @return list<array{account_id: int, amount: Money}>
+     */
     public function credits(int $customerId, int $amount): array
     {
         $repaid = min($amount, $this->balance($customerId));
