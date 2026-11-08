@@ -8,10 +8,16 @@ use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Illuminate\Contracts\Auth\Authenticatable;
 use SensitiveParameter;
 
+/**
+ * Adds staff MFA audit events while leaving code verification to the panel authenticator.
+ */
 class StaffAppAuthentication extends AppAuthentication
 {
     private ?Staff $challengedStaff = null;
 
+    /**
+     * Retains the challenged staff identity for subsequent verification audit events.
+     */
     public function getChallengeFormComponents(Authenticatable $user): array
     {
         $this->challengedStaff = $user instanceof Staff ? $user : null;

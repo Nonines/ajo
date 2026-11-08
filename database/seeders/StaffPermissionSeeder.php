@@ -7,6 +7,9 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Synchronizes the staff-guard permission baseline without creating login credentials.
+ */
 class StaffPermissionSeeder extends Seeder
 {
     public function run(): void

@@ -20,6 +20,9 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
+/**
+ * Configures the ops panel with separate staff authentication and mandatory recoverable MFA.
+ */
 class OpsPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel

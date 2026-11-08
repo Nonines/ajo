@@ -20,6 +20,7 @@ export type TwoFactorAuthStateApi = {
     fetchRecoveryCodes: () => Promise<void>;
 };
 
+// Share setup and recovery state across security components; clearing it affects every consumer.
 const state = $state<TwoFactorAuthState>({
     qrCodeSvg: null,
     manualSetupKey: null,
@@ -64,6 +65,7 @@ export function twoFactorAuthState(): TwoFactorAuthStateApi {
         state.errors = [];
     };
 
+    // Discard enrollment secrets while keeping any separately fetched recovery codes.
     const clearSetupData = (): void => {
         state.manualSetupKey = null;
         state.qrCodeSvg = null;

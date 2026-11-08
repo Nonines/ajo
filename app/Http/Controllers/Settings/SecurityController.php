@@ -11,6 +11,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
 
+/**
+ * Exposes customer security settings and validated password updates through the web guard.
+ */
 class SecurityController extends Controller
 {
     /**

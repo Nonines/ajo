@@ -29,8 +29,14 @@ use Laravel\Passkeys\Events\PasskeyDeleted;
 use Laravel\Passkeys\Events\PasskeyRegistered;
 use Laravel\Passkeys\Events\PasskeyVerified;
 
+/**
+ * Connects authentication, identity changes, and staff financial reads to the protected audit chain.
+ */
 class SecurityAudit
 {
+    /**
+     * Registers audit listeners without copying authentication credentials into event properties.
+     */
     public static function register(): void
     {
         Event::listen([
@@ -72,6 +78,9 @@ class SecurityAudit
         }
     }
 
+    /**
+     * Snapshots assigned roles and direct permissions after a staff access change.
+     */
     public function staffPermissions(Staff $staff): void
     {
         app(AuditTrail::class)->record('staff.permissions', $staff, ['roles' => $staff->roles()->pluck('name')->all(),

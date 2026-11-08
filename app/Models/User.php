@@ -15,6 +15,8 @@ use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
+ * Represents a customer under the web guard with email verification, two-factor, and passkey support.
+ *
  * @property bool $is_active
  * @property int $id
  * @property string $name

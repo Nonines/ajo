@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Manages customer profile changes and account closure while retaining financial history.
+ */
 class ProfileController extends Controller
 {
     /**
@@ -45,7 +48,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's profile.
+     * Close the account through the wallet retention rules, then invalidate the customer session.
      */
     public function destroy(ProfileDeleteRequest $request, Wallets $wallets): RedirectResponse
     {

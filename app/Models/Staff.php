@@ -17,6 +17,8 @@ use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
+ * Keeps staff authentication, roles, and panel access separate from customer identities.
+ *
  * @property int $id
  * @property string $name
  * @property string $email
@@ -32,6 +34,9 @@ class Staff extends Authenticatable implements FilamentUser, HasAppAuthenticatio
 
     protected string $guard_name = 'staff';
 
+    /**
+     * Requires active staff and the roles allowed for the specific panel.
+     */
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_active && match ($panel->getId()) {

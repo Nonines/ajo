@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Bootstraps the first staff administrator interactively without accepting a command-line password.
+ */
 #[Signature('staff:create-initial-admin {--name=} {--email=}')]
 #[Description('Create the first staff administrator; manage subsequent staff in the admin panel')]
 class CreateInitialAdmin extends Command

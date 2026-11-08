@@ -18,6 +18,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Manages staff-guard roles and direct permissions with audited transactional edits.
+ */
 class StaffResource extends Resource
 {
     protected static ?string $model = Staff::class;
