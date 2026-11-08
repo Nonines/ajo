@@ -11,22 +11,55 @@ Ajo is a portfolio project for a fictional NGN savings platform, focused on fina
 ## Directory structure
 
 ```text
-app/
-  Actions/Fortify/     Customer authentication actions
-  Console/Commands/   Admin bootstrap, wallet provisioning, ledger projections
-  Contracts/          Clock interface
-  Filament/           Staff management resources
-  Http/               Controllers, requests, middleware
-  Models/, Policies/  Identities, authorization, ledger accounts and history
-  Providers/          Application, authentication, panels, Horizon
-  Support/            Clocks, staff MFA, money, ledger and wallet services
-config/               Authentication, permissions, cache, queues, ledger locks
-database/             Migrations, factories, role seeders
-resources/js/         Svelte pages, layouts, shared components
-resources/css/        Customer theme
-routes/               Customer routes and scheduled commands
-tests/                Pest feature and unit tests
-.github/workflows/    CI with Redis integration coverage
+.
+├── app/
+│   ├── Actions/Fortify/       Customer registration and password reset
+│   ├── Concerns/             Shared profile and password validation rules
+│   ├── Console/Commands/     Staff bootstrap, recovery, backfills, ledger/audit checks
+│   ├── Contracts/            Clock and payment gateway interfaces
+│   ├── Filament/
+│   │   ├── Resources/        Admin: staff, products, audit, exceptions, simulations
+│   │   └── Ops/Resources/    Operations: customers, withdrawals, approvals, plans
+│   ├── Http/
+│   │   ├── Controllers/      Customer actions, provider callbacks, settings
+│   │   ├── Requests/         Request authorization, validation, amount conversion
+│   │   └── Middleware/       Shared Inertia props and appearance preferences
+│   ├── Jobs/                 Verification, payouts, accrual, notice delivery
+│   ├── Models/               Identities, financial records, inbox and delivery state
+│   ├── Notifications/        Payment, withdrawal, and savings email content
+│   ├── Policies/             Staff, product, and payment-exception authorization
+│   ├── Providers/            Service bindings, authentication, panels, Horizon
+│   └── Support/
+│       ├── DepositStates/    Deposit lifecycle transitions
+│       ├── PlanStates/       Savings lifecycle transitions
+│       ├── WithdrawalStates/ Withdrawal lifecycle transitions
+│       └── *.php             Money, ledger, payments, savings, approvals, audit
+├── bootstrap/                Application routing and middleware setup
+├── config/                   Framework settings and financial processing limits
+├── database/
+│   ├── factories/            Model fixtures for tests and development
+│   ├── migrations/           Tables, indexes, and financial evidence guards
+│   └── seeders/              Development data and staff permission roles
+├── docs/definitions.md       Financial and operational terminology
+├── resources/
+│   ├── css/                  Customer theme
+│   ├── js/
+│   │   ├── pages/            Customer financial, authentication, and settings screens
+│   │   ├── layouts/          Application, authentication, and settings shells
+│   │   ├── components/       Shared interface and security controls; UI primitives
+│   │   ├── lib/              Money/rate formatting, theme, navigation, MFA state
+│   │   ├── types/            Shared page and financial data types
+│   │   └── actions/, routes/, wayfinder/  Generated typed route helpers
+│   └── views/                Initial Inertia HTML document
+├── routes/
+│   ├── web.php               Customer pages, financial actions, provider callbacks
+│   ├── settings.php          Profile, security, and appearance routes
+│   └── console.php           Scheduled payment, payout, and savings recovery
+├── tests/
+│   ├── Feature/              Financial lifecycles, authentication, staff, infrastructure
+│   ├── Unit/                 Money and rate arithmetic
+│   └── Pest.php              Shared test setup and financial fixtures
+└── .github/workflows/        CI checks with Redis integration coverage
 ```
 
 ## Architecture
@@ -46,6 +79,27 @@ flowchart LR
 ```
 
 SQLite stores application data, including ledger accounts, journals, and entries. Redis provides caching, locks, and queues through Predis; local development uses native Valkey, while CI uses Redis. Financial writes use customer locks and SQLite `IMMEDIATE` transactions with bounded retries for database contention. Redis/Valkey is required for wallet provisioning during registration. Horizon reserves separate capacity for `default`, `webhooks`, `accrual`, and `payouts`; payment, savings, and payout jobs use these queues with durable recovery records.
+
+## Key processes and connections
+
+Controllers handle HTTP access and responses. Form requests validate customer input; services in `app/Support` enforce financial rules. Filament staff actions call these services too, so customer pages, jobs, and staff panels share the same posting rules.
+
+- **Registration and wallets:** `CreateNewUser` creates a `User` and calls `Wallets::provision` in one transaction. Each customer gets a wallet liability account and a recovery receivable account. `WalletController` reads ledger history and reverses liability signs for customer display.
+- **Deposits:** `DepositController` calls `Deposits` to save a `Deposit` before opening checkout. Browser returns request verification; authenticated webhooks enter `PaymentInbox` as `WebhookEvent` records. Workers fetch provider evidence before `Deposits` posts value through `Ledger`. Processing a receipt does not mean the payment has reached a final outcome.
+- **Withdrawals and approvals:** `SavedDestinationController` uses `Destinations` to verify and save bank details. `WithdrawalController` calls `Withdrawals` to reserve principal and fees in a `WithdrawalRequest`. Reservations above the saved review threshold require a distinct requester and checker through `Approvals` and `ApprovalRequest`; reservations at or below that threshold use direct staff review. Dispatch commits submission intent before the provider call; the provider approval callback checks that reservation, and verification jobs reconcile the final outcome and actual fee.
+- **Savings:** `SavingsPlanController` uses `SavingsPlans` to create, accept, and fund a `SavingsPlan` with a copy of its `SavingsProductVersion` terms. `SavingsProcessing` queues work; `SavingsAccrual` records completed days and compounding evidence in bounded batches. `SavingsSettlements` checks that evidence before settlement at maturity or early closure, applies deductions and approved waivers, and can fund one renewal child at maturity when the customer has consented and remains eligible.
+- **Recovery and notices:** `DepositRecovery` verifies refund deductions; `RecoveryControls` directs incoming value to recovery debt before wallet credit. Outstanding debt blocks new spending flows such as payouts and savings funding. Payment and savings notice intent is saved with the financial transaction; workers deliver it separately, while scheduled commands rediscover due work after queue failures.
+- **Audit:** `AuditTrail` redacts recognized sensitive fields and appends signed `AuditEvent` records in a hash chain. `SecurityAudit` adds authentication and staff-access events. `AuditArchives` verifies and archives old prefixes during maintenance, then removes expired files while retaining signed boundary records.
+
+Key stored links:
+
+| Records | Connection |
+| --- | --- |
+| `User` → `Deposit`, `WithdrawalRequest`, `SavingsPlan`, `LedgerAccount` | `user_id` identifies the customer whose value or contract is recorded. |
+| `WithdrawalRequest` → `SavedDestination` | `saved_destination_id` links the saved account; the request also keeps its own destination and fee snapshot. |
+| `SavingsProduct` → `SavingsProductVersion` → `SavingsPlan` | Versioned terms and the plan's contract copy preserve the agreement when products change. |
+| `Journal` → `LedgerEntry` → `LedgerAccount` | Entries link each posting to its journal and account; financial records retain journal IDs as evidence. |
+| `ApprovalRequest` → action subject and `Staff` | `subject_type`/`subject_id` identify the target; `requested_by` and `decided_by` identify the separate staff actors. |
 
 ## Money, ledger, and wallets
 
