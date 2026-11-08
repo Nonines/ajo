@@ -21,6 +21,8 @@ This is a plain-language guide to words, field names, settings, and rules used i
 
 Sources: [Money](../app/Support/Money/Money.php), [BasisPoints](../app/Support/Money/BasisPoints.php), [savings interest](../app/Support/Savings/SavingsAccrual.php), and [withdrawals](../app/Support/Withdrawals/Withdrawals.php).
 
+`Money::fromNaira()` converts nonnegative decimal naira, such as `1000.12`, into integer kobo (`100012`) without floats. Deposit, withdrawal, and savings requests share it while keeping their own validation and limits. `Money::toNaira()` formats integer kobo with exactly two decimal places for financial emails. JSON amounts still contain integer kobo strings.
+
 | Term or field                          | What it means and what it affects                                                                                                                                                                                                                |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | NGN / naira / kobo                     | NGN is the currency code for Nigerian naira. ₦1 is 100 kobo. Ajo records money in whole kobo.                                                                                                                                                    |
@@ -182,7 +184,7 @@ These names describe settings, not the private values used by a running installa
 | `PAYSTACK_WEBHOOK_MODE`                                   | Chooses the signature format: `legacy` or `timestamped`. Default: `legacy`. See [payment inbox](../app/Support/Payments/PaymentInbox.php).                                                                                                                                                   |
 | `PAYSTACK_WEBHOOK_SIGNING_SECRET`                         | Separate webhook secret used in timestamped mode. That mode checks both the signature and a 300-second time tolerance.                                                                                                                                                              |
 | `PAYSTACK_APPROVAL_TOKEN`                                 | Shared secret checked by the transfer approval callback. It is separate from the staff maker-checker decision. See [approval controller](../app/Http/Controllers/TransferApprovalController.php) and [withdrawal config](../config/withdrawals.php).                                |
-| `PAYMENT_SIMULATION_ENABLED`                              | Enables the payment simulator only alongside its other checks: an admin actor and a `local` or `testing` environment. Default: false. See [simulator](../app/Support/Payments/PaymentSimulator.php).                                                                                         |
+| `PAYMENT_SIMULATION_ENABLED`                              | Enables the payment simulator only alongside its other checks: an active administrator with `simulator.use` and a `local`, `testing`, or `demo` environment. Default: false. See [simulator](../app/Support/Payments/PaymentSimulator.php). |
 | `SIMULATOR_SIGNING_KEY`                                   | Secret used to sign and check simulated webhook evidence. It is separate from Paystack credentials. See [simulator](../app/Support/Payments/PaymentSimulator.php) and [payment inbox](../app/Support/Payments/PaymentInbox.php).                                                                      |
 | `savings.withholding_bp`                                  | Default withholding rate supplied for products. Current default: `1000`, meaning 10%. Each contract keeps its own copy. See [savings config](../config/savings.php).                                                                                                                |
 | `savings.funding_hours`                                   | Funding window used when creating a plan. Current default: 24 hours.                                                                                                                                                                                                                |
@@ -218,3 +220,19 @@ Sources: [schedule](../routes/console.php), [Horizon config](../config/horizon.p
 | Polling                | The page asks the server for fresh status at intervals while an operation is pending.                                                                                                          |
 
 When adding a new term, explain its unit, what changes it, and what it affects. If it has different meanings in different parts of the app, explain each meaning and link to the code that uses it.
+
+## Demo time and fictional history
+
+Sources: [demo clock](../app/Support/Clock/DemoClock.php), [time machine](../app/Support/Demo/DemoTimeMachine.php), [history](../app/Support/Demo/DemoHistory.php), and [demo configuration](../config/demo.php).
+
+| Term or setting | Meaning and behavior |
+| --- | --- |
+| Demo mode | `APP_ENV=demo` selects a shared persisted clock and simulated provider evidence. Real provider calls and discovery are disabled. |
+| Time machine | An active administrator with `simulator.use` can request up to 365 whole application-calendar days of advancement. Due financial work finishes before the clock advances. Time cannot rewind. |
+| `demo_state` | Saves the current instant, requested target, failures, and history checkpoints. Processing resumes from these records after a disconnect or interruption. |
+| `DEMO_START_AT` | Optional initial UTC instant. If omitted, the clock starts 400 days before setup at 00:05 in the application timezone. |
+| `DEMO_CUSTOMER_PASSWORD` | Password supplied for the fictional `demo@example.test` customer. It must contain at least 12 characters. No password value is stored in this guide. |
+| `DemoHistorySeeder` | Runs independently and builds fictional history through ordinary financial services. It requires an empty customer, product, and financial dataset; staff may already exist. Completed stages are retained for safe resumption. |
+| Demo delivery | Jobs run synchronously, including the queue connection named `redis`. Redis still provides the default cache and locks. In-app notices are saved; financial email sending is suppressed. |
+
+Staff decisions and simulated provider outcomes remain manual. Saved failures, real provider records, and open provider investigations block time advancement.
