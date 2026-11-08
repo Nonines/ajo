@@ -2,6 +2,8 @@
 
 use App\Contracts\Clock;
 use App\Filament\Resources\SavingsProducts\Pages\ManageSavingsProducts;
+use App\Models\LedgerAccount;
+use App\Models\SavingsNotice;
 use App\Models\SavingsPlan;
 use App\Models\SavingsProduct;
 use App\Models\SavingsProductVersion;
@@ -9,6 +11,7 @@ use App\Models\Staff;
 use App\Models\User;
 use App\Support\Approvals;
 use App\Support\FrozenClock;
+use App\Support\Ledger;
 use App\Support\Money;
 use App\Support\SavingsPlans;
 use App\Support\SavingsProducts;
@@ -119,3 +122,74 @@ test('contract and published version history reject direct database changes', fu
         };
     })->toThrow(QueryException::class, 'immutable');
 })->with(['snapshot', 'deadline', 'version-update', 'version-delete']);
+
+test('new product variants validate their interest lock holding period and deduction contracts', function (array $changes, string $field): void {
+    $data = array_replace(savingsProductData(), ['interest' => 'daily', 'lock' => 'terminable', 'minimum_holding_days' => 7,
+        'forfeiture_bp' => 5000, 'principal_penalty_bp' => 100], $changes);
+    try {
+        app(SavingsProducts::class)->publish(savingsAdmin(), $data);
+        test()->fail('Invalid contract was published.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors())->toHaveKey($field);
+    }
+    $this->assertDatabaseCount('savings_products', 0);
+})->with([
+    [['interest' => 'monthly'], 'interest'], [['lock' => 'flexible'], 'lock'],
+    [['minimum_holding_days' => null], 'minimum_holding_days'], [['minimum_holding_days' => 0], 'minimum_holding_days'],
+    [['minimum_holding_days' => 1.5], 'minimum_holding_days'], [['minimum_holding_days' => 30], 'minimum_holding_days'],
+    [['forfeiture_bp' => 10001], 'forfeiture_bp'], [['principal_penalty_bp' => -1], 'principal_penalty_bp'],
+]);
+
+test('upgrading populated savings retains legacy snapshots settlements notices and financial guards', function (): void {
+    $original = DB::getDefaultConnection();
+    config(['database.connections.savings_upgrade' => [...config('database.connections.sqlite'), 'database' => ':memory:']]);
+    DB::setDefaultConnection('savings_upgrade');
+    $migration = database_path('migrations/2026_11_07_212545_extend_savings_for_compounding_and_closure.php');
+    $baseline = array_values(array_filter(glob(database_path('migrations/*.php')), fn (string $path): bool => basename($path) < basename($migration)));
+    try {
+        $this->artisan('migrate', ['--database' => 'savings_upgrade', '--path' => $baseline, '--realpath' => true, '--force' => true, '--no-interaction' => true])->assertSuccessful();
+        $legacyVersion = SavingsProductVersion::factory()->create(['contract' => ['name' => 'Legacy savings', 'disclosure' => 'Legacy fixture',
+            'minimum' => '1', 'maximum' => '1000000', 'withholding_bp' => 1000, 'terms' => [['days' => 30, 'annual_rate_bp' => 0]],
+            'interest' => 'simple', 'day_count' => 'Actual/365', 'lock' => 'until_maturity', 'fee' => '0']]);
+        $plan = SavingsPlan::factory()->create(['savings_product_version_id' => $legacyVersion->id,
+            'contract' => $legacyVersion->contract + ['principal' => '10000', 'days' => 30, 'annual_rate_bp' => 0]]);
+        postWalletTestCredit($plan->user, kobo: 10000);
+        foreach (['principal', 'interest'] as $suffix) {
+            (new LedgerAccount)->forceFill(['code' => 'customer:'.$plan->user_id.':plan:'.$plan->id.':'.$suffix,
+                'type' => 'liability', 'user_id' => $plan->user_id])->save();
+        }
+        $funding = app(Ledger::class)->post('legacy-funding', [
+            ['account_id' => LedgerAccount::where('code', 'customer:'.$plan->user_id.':wallet')->sole()->id, 'amount' => new Money(10000)],
+            ['account_id' => app(SavingsPlans::class)->account($plan, 'principal')->id, 'amount' => new Money(-10000)],
+        ], '2026-11-07', 'Legacy funding fixture', $plan->user_id);
+        $start = app(Clock::class)->now()->setTimezone('Africa/Lagos')->startOfDay()->addDay();
+        $plan->forceFill(['state' => 'active', 'funded_at' => app(Clock::class)->now(), 'accrual_starts_at' => $start,
+            'matures_at' => $start->addDays(30), 'funding_journal_id' => $funding->id])->save();
+        $contract = DB::table('savings_plans')->where('id', $plan->id)->value('contract');
+        $version = DB::table('savings_product_versions')->where('id', $plan->savings_product_version_id)->value('contract');
+        $journal = app(Ledger::class)->post('legacy-settlement', [
+            ['account_id' => app(SavingsPlans::class)->account($plan, 'principal')->id, 'amount' => new Money(10000)],
+            ['account_id' => LedgerAccount::where('code', 'customer:'.$plan->user_id.':wallet')->sole()->id, 'amount' => new Money(-10000)],
+        ], '2026-12-08', 'Legacy maturity fixture', $plan->user_id);
+        DB::table('plan_settlements')->insert(['savings_plan_id' => $plan->id, 'journal_id' => $journal->id, 'principal' => 10000,
+            'gross_interest' => 0, 'net_interest' => 0, 'remaining_debt' => 0, 'withholding' => 0, 'debt_repayment' => 0,
+            'wallet_credit' => 10000, 'rounding_micro_kobo' => '0', 'posted_at' => app(Clock::class)->now()]);
+        $plan->forceFill(['state' => 'closed', 'closure_reason' => 'matured_withdrawal'])->save();
+        (new SavingsNotice)->forceFill(['id' => (string) Str::uuid(), 'savings_plan_id' => $plan->id, 'user_id' => $plan->user_id,
+            'recipient' => $plan->user->email, 'data' => ['type' => 'savings_maturity'], 'created_at' => app(Clock::class)->now(), 'next_attempt_at' => app(Clock::class)->now()])->save();
+        $this->artisan('migrate', ['--database' => 'savings_upgrade', '--path' => [$migration], '--realpath' => true, '--force' => true, '--no-interaction' => true])->assertSuccessful();
+
+        expect(DB::table('savings_plans')->where('id', $plan->id)->value('contract'))->toBe($contract);
+        expect(DB::table('savings_product_versions')->where('id', $plan->savings_product_version_id)->value('contract'))->toBe($version);
+        expect(DB::table('plan_settlements')->sole()->wallet_credit)->toBe(10000);
+        expect(DB::table('plan_settlements')->sole()->capitalized_interest)->toBe(0);
+        expect(SavingsNotice::sole()->data['type'])->toBe('savings_maturity');
+        expect($plan->fresh()->rollover_election)->toBeNull();
+        expect(fn () => DB::table('savings_plans')->where('id', $plan->id)->update(['contract' => '{}']))->toThrow(QueryException::class, 'immutable');
+        expect(fn () => DB::table('plan_settlements')->where('savings_plan_id', $plan->id)->delete())->toThrow(QueryException::class, 'immutable');
+        expect(app(Ledger::class)->projectionMismatches())->toBe([]);
+    } finally {
+        DB::disconnect('savings_upgrade');
+        DB::setDefaultConnection($original);
+    }
+});
