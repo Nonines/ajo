@@ -5,6 +5,9 @@ namespace App\Policies;
 use App\Models\SavingsProduct;
 use App\Models\Staff;
 
+/**
+ * Restricts product management to active administrators and preserves published history.
+ */
 class SavingsProductPolicy
 {
     public function viewAny(Staff $staff): bool

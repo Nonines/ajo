@@ -5,8 +5,8 @@ namespace App\Filament\Ops\Resources\WithdrawalRequests;
 use App\Filament\Ops\Resources\WithdrawalRequests\Pages\ManageWithdrawalRequests;
 use App\Models\Staff;
 use App\Models\WithdrawalRequest;
-use App\Support\Approvals;
-use App\Support\Withdrawals;
+use App\Support\Auth\Approvals;
+use App\Support\Withdrawals\Withdrawals;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Textarea;
@@ -22,6 +22,9 @@ class WithdrawalRequestResource extends Resource
 {
     protected static ?string $model = WithdrawalRequest::class;
 
+    /**
+     * Restricts this view to eligible staff with customers.view permission.
+     */
     public static function canViewAny(): bool
     {
         $staff = Filament::auth()->user();
@@ -44,6 +47,9 @@ class WithdrawalRequestResource extends Resource
         return false;
     }
 
+    /**
+     * Selects single-review or maker-checker actions from the snapshotted reservation.
+     */
     public static function table(Table $table): Table
     {
         return $table->defaultSort('id', 'desc')->columns([

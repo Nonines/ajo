@@ -5,18 +5,24 @@ namespace App\Filament\Resources\PaymentSimulations\Pages;
 use App\Filament\Resources\PaymentSimulations\PaymentSimulationResource;
 use App\Models\Staff;
 use App\Models\User;
-use App\Support\Money;
-use App\Support\PaymentSimulator;
+use App\Support\Money\Money;
+use App\Support\Payments\PaymentSimulator;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\ManageRecords;
 
+/**
+ * Creates scenarios that exercise the application's normal financial checks.
+ */
 class ManagePaymentSimulations extends ManageRecords
 {
     protected static string $resource = PaymentSimulationResource::class;
 
+    /**
+     * Creates explicitly simulated transactions for active, verified customers.
+     */
     protected function getHeaderActions(): array
     {
         return [Action::make('simulate')->label('Create explicitly simulated transaction')->schema([

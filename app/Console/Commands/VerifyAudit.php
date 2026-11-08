@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Support\AuditTrail;
+use App\Support\Audit\AuditTrail;
 use DomainException;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\DB;
 #[Description('Verify retained audit evidence and its chain head')]
 class VerifyAudit extends Command
 {
+    /**
+     * Reports retained chain integrity and the boundaries of expired evidence.
+     */
     public function handle(AuditTrail $audit): int
     {
         try {
@@ -24,9 +27,11 @@ class VerifyAudit extends Command
             $floor = DB::table('audit_head')->where('id', 1)->sole()->floor_sequence;
             $expired = DB::table('audit_archives')->whereNotNull('purged_at')->count();
             $this->info('Online evidence begins after event '.$floor.'. Expired archive boundaries: '.$expired.'.');
+
             if ($expired > 0) {
                 $this->warn('Expired archive contents are unavailable; only their signed boundary metadata remains.');
             }
+
             $this->warn('There is no external trusted checkpoint; an authentic historical rollback cannot be disproved.');
 
             return self::SUCCESS;

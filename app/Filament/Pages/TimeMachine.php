@@ -3,7 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Staff;
-use App\Support\DemoTimeMachine;
+use App\Support\Demo\DemoTimeMachine;
 use DomainException;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -11,12 +11,18 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 
+/**
+ * Controls shared demo time while preserving restart progress and administrator authorization.
+ */
 class TimeMachine extends Page
 {
     protected string $view = 'filament.pages.time-machine';
 
     public string $expectedInstant = '';
 
+    /**
+     * Restricts the shared demo clock to active administrators with simulation permission.
+     */
     public static function canAccess(): bool
     {
         $staff = Filament::auth()->user();
@@ -25,6 +31,9 @@ class TimeMachine extends Page
             && $staff->hasRole('admin') && $staff->can('simulator.use');
     }
 
+    /**
+     * Captures the current demo instant to reject stale advance submissions.
+     */
     public function mount(): void
     {
         $this->authorizeAdmin();
@@ -41,6 +50,7 @@ class TimeMachine extends Page
             ])->modalDescription('Advances time for every account. Due financial work runs in order. Staff decisions and payment outcomes remain manual.')
                 ->action(function (array $data): void {
                     $staff = $this->authorizeAdmin();
+
                     try {
                         app(DemoTimeMachine::class)->start($staff, (int) $data['days'], $this->expectedInstant);
                         $this->process();
@@ -55,10 +65,14 @@ class TimeMachine extends Page
         ];
     }
 
+    /**
+     * Continues pending demo work and refreshes the expected instant after each poll.
+     */
     public function process(): void
     {
         $this->authorizeAdmin();
         $machine = app(DemoTimeMachine::class);
+
         if ($machine->state()['target_at'] !== null) {
             try {
                 $machine->process();
@@ -66,6 +80,7 @@ class TimeMachine extends Page
                 Notification::make()->title($exception->getMessage())->danger()->send();
             }
         }
+
         $this->expectedInstant = $machine->state()['current_at'];
     }
 
@@ -77,6 +92,9 @@ class TimeMachine extends Page
         return ['demo' => app(DemoTimeMachine::class)->state()];
     }
 
+    /**
+     * Rechecks page access and service authorization for every interactive operation.
+     */
     private function authorizeAdmin(): Staff
     {
         abort_unless(static::canAccess(), 403);

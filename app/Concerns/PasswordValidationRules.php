@@ -5,6 +5,9 @@ namespace App\Concerns;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Keeps password confirmation and current-password checks consistent across customer actions.
+ */
 trait PasswordValidationRules
 {
     /**

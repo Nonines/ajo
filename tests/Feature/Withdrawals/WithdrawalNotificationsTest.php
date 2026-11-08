@@ -8,11 +8,11 @@ use App\Models\PaymentNotice;
 use App\Models\SavedDestination;
 use App\Models\User;
 use App\Notifications\WithdrawalStatusNotice;
-use App\Support\FrozenClock;
-use App\Support\Ledger;
-use App\Support\Money;
-use App\Support\PaymentNotices;
-use App\Support\Withdrawals;
+use App\Support\Clock\FrozenClock;
+use App\Support\Ledger\Ledger;
+use App\Support\Money\Money;
+use App\Support\Payments\PaymentNotices;
+use App\Support\Withdrawals\Withdrawals;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +23,16 @@ use Illuminate\Support\Str;
 beforeEach(function (): void {
     app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2026-11-07T10:00:00Z')));
     config(['payments.secret_key' => 'sk_test_fixture']);
+});
+
+test('withdrawal email distinguishes unknown fees from exact monetary amounts', function (): void {
+    $notice = new WithdrawalStatusNotice(['type' => 'withdrawal_paid', 'reference' => 'ajo-test', 'withdrawal_id' => '1',
+        'principal' => '100001', 'reserved_fee' => '0', 'actual_fee' => 'unverified', 'remaining_debt' => '1']);
+
+    $mail = $notice->toMail(new stdClass);
+
+    expect($mail->introLines)->toContain('Principal: NGN 1000.01', 'Reserved Fee: NGN 0.00',
+        'Actual Fee: awaiting verification', 'Remaining Debt: NGN 0.01');
 });
 
 test('withdrawal notices retain encrypted intent and deliver an idempotent in-app record', function (): void {

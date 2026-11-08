@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Support\Money;
-use App\Support\MoneyCast;
-use App\Support\ReadOnlyLedgerBuilder;
+use App\Support\Ledger\ReadOnlyLedgerBuilder;
+use App\Support\Money\Money;
+use App\Support\Money\MoneyCast;
 use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

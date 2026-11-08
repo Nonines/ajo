@@ -5,11 +5,18 @@ use App\Models\LedgerAccount;
 use App\Models\SavingsPlan;
 use App\Models\SavingsProductVersion;
 use App\Models\User;
-use App\Support\FrozenClock;
-use App\Support\Ledger;
-use App\Support\Money;
-use App\Support\SavingsPlans;
-use App\Support\Wallets;
+use App\Support\Clock\FrozenClock;
+use App\Support\Ledger\Ledger;
+use App\Support\Ledger\Wallets;
+use App\Support\Money\Money;
+use App\Support\Savings\PlanStates\Active;
+use App\Support\Savings\PlanStates\Cancelled;
+use App\Support\Savings\PlanStates\Closed;
+use App\Support\Savings\PlanStates\Draft;
+use App\Support\Savings\PlanStates\Matured;
+use App\Support\Savings\PlanStates\PendingFunding;
+use App\Support\Savings\PlanStates\Suspended;
+use App\Support\Savings\SavingsPlans;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -18,6 +25,22 @@ beforeEach(function () {
     config(['inertia.ssr.enabled' => false]);
     app()->instance(Clock::class, new FrozenClock(CarbonImmutable::parse('2026-11-07T10:00:00Z')));
 });
+
+test('persisted savings aliases hydrate their lifecycle states', function (string $alias, string $class) {
+    $plan = SavingsPlan::factory()->make();
+    $plan->setRawAttributes(['state' => $alias], sync: true);
+
+    expect($plan->state)->toBeInstanceOf($class);
+    expect((string) $plan->state)->toBe($alias);
+})->with([
+    ['draft', Draft::class],
+    ['pending_funding', PendingFunding::class],
+    ['active', Active::class],
+    ['suspended', Suspended::class],
+    ['matured', Matured::class],
+    ['cancelled', Cancelled::class],
+    ['closed', Closed::class],
+]);
 
 test('a customer reviews accepts and funds their snapshotted contract once', function () {
     $user = User::factory()->create();

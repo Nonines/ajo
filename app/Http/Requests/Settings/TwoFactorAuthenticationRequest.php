@@ -6,6 +6,9 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Laravel\Fortify\InteractsWithTwoFactorState;
 
+/**
+ * Exposes Fortify two-factor state to the authenticated security settings page.
+ */
 class TwoFactorAuthenticationRequest extends FormRequest
 {
     use InteractsWithTwoFactorState;

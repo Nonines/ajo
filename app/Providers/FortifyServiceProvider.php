@@ -14,6 +14,9 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
+/**
+ * Connects customer authentication actions, Inertia views, and sensitive endpoint limits.
+ */
 class FortifyServiceProvider extends ServiceProvider
 {
     /**

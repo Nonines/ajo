@@ -5,8 +5,8 @@ namespace App\Filament\Resources\SavingsProducts;
 use App\Filament\Resources\SavingsProducts\Pages\ManageSavingsProducts;
 use App\Models\SavingsProduct;
 use App\Models\Staff;
-use App\Support\Approvals;
-use App\Support\SavingsProducts;
+use App\Support\Auth\Approvals;
+use App\Support\Savings\SavingsProducts;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -36,6 +36,9 @@ class SavingsProductResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    /**
+     * Reuses the same terms fields for product creation and publication.
+     */
     public static function form(Schema $schema): Schema
     {
         return $schema->components(static::fields());
@@ -66,6 +69,9 @@ class SavingsProductResource extends Resource
         ];
     }
 
+    /**
+     * Separates ordinary version publication from rate changes requiring independent approval.
+     */
     public static function table(Table $table): Table
     {
         return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('current_version')->label('Published version')])

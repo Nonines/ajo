@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Support\AuditArchives;
+use App\Support\Audit\AuditArchives;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -14,6 +14,9 @@ use Illuminate\Console\Command;
 #[Description('Verify and archive audit prefixes, then purge expired archive files during maintenance')]
 class MaintainAudit extends Command
 {
+    /**
+     * Commits archive boundaries before removing expired archive files.
+     */
     public function handle(AuditArchives $archives): int
     {
         $count = $archives->maintain();

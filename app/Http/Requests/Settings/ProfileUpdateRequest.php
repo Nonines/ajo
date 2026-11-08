@@ -6,6 +6,9 @@ use App\Concerns\ProfileValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates profile changes without treating the current customer email as a duplicate.
+ */
 class ProfileUpdateRequest extends FormRequest
 {
     use ProfileValidationRules;

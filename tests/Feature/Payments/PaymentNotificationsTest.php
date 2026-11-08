@@ -11,9 +11,9 @@ use App\Models\PaymentNotice;
 use App\Models\Staff;
 use App\Models\User;
 use App\Notifications\PaymentStatusNotice;
-use App\Support\Deposits;
-use App\Support\PaymentInbox;
-use App\Support\PaymentNotices;
+use App\Support\Payments\Deposits;
+use App\Support\Payments\PaymentInbox;
+use App\Support\Payments\PaymentNotices;
 use Database\Seeders\StaffPermissionSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -25,6 +25,15 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Livewire\Livewire;
+
+test('payment email preserves exact saved monetary amounts', function () {
+    $notice = new PaymentStatusNotice(['type' => 'confirmed', 'reference' => 'ajo-test',
+        'net' => '9007199254740993', 'fee' => '1', 'remaining_debt' => '0']);
+
+    $mail = $notice->toMail(new stdClass);
+
+    expect($mail->introLines)->toContain('Net: NGN 90071992547409.93', 'Fee: NGN 0.01', 'Remaining Debt: NGN 0.00');
+});
 
 test('receipt intents survive before dispatch and create an owned unread inbox record once', function () {
     $user = User::factory()->create();

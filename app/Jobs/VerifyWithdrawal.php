@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\WithdrawalRequest;
-use App\Support\Withdrawals;
+use App\Support\Withdrawals\Withdrawals;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -21,6 +21,9 @@ class VerifyWithdrawal implements ShouldQueue
         $this->onConnection('redis')->onQueue('payouts')->afterCommit();
     }
 
+    /**
+     * Reloads the payout and verifies its outcome before considering resubmission.
+     */
     public function handle(Withdrawals $withdrawals): void
     {
         $withdrawals->reconcile(WithdrawalRequest::findOrFail($this->withdrawalId));

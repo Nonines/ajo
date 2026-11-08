@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Staff;
-use App\Support\SecurityAudit;
+use App\Support\Audit\SecurityAudit;
 use Database\Seeders\StaffPermissionSeeder;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -19,6 +19,9 @@ use Illuminate\Validation\Rules\Password;
 #[Description('Create the first staff administrator; manage subsequent staff in the admin panel')]
 class CreateInitialAdmin extends Command
 {
+    /**
+     * Validates interactive credentials and creates the first administrator atomically.
+     */
     public function handle(StaffPermissionSeeder $permissions): int
     {
         if (Staff::query()->exists()) {

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDestinationRequest;
-use App\Support\Destinations;
+use App\Support\Withdrawals\Destinations;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;

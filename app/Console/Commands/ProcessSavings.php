@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\SavingsException;
 use App\Models\SavingsPlan;
-use App\Support\SavingsAccrual;
-use App\Support\SavingsProcessing;
+use App\Support\Savings\SavingsAccrual;
+use App\Support\Savings\SavingsProcessing;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 
@@ -18,6 +18,9 @@ class ProcessSavings extends Command
 
     protected $description = 'Discover savings work or process a bounded chronological backfill';
 
+    /**
+     * Selects discovery or a validated, bounded chronological backfill.
+     */
     public function handle(SavingsProcessing $processing, SavingsAccrual $accrual): int
     {
         if ($this->option('plan') === null) {
@@ -26,14 +29,18 @@ class ProcessSavings extends Command
 
                 return self::FAILURE;
             }
+
             $processing->discover();
 
             return self::SUCCESS;
         }
+
         $plan = SavingsPlan::findOrFail((int) $this->option('plan'));
+
         if ($this->option('from') !== null) {
             $from = CarbonImmutable::createFromFormat('!Y-m-d', $this->option('from'), config('app.timezone'));
             $through = CarbonImmutable::createFromFormat('!Y-m-d', $this->option('through') ?? $this->option('from'), config('app.timezone'));
+
             if ($from === null || $through === null || $from->format('Y-m-d') !== $this->option('from') || $through->lessThan($from)
                 || $through->format('Y-m-d') !== ($this->option('through') ?? $this->option('from'))
                 || $from->diffInDays($through) >= config('savings.processing_days')) {
@@ -41,6 +48,7 @@ class ProcessSavings extends Command
 
                 return self::FAILURE;
             }
+
             for ($date = $from; $date->lessThanOrEqualTo($through); $date = $date->addDay()) {
                 if (! $accrual->date($plan, $date->toDateString())) {
                     $this->error('Accrual requires investigation. See the admin savings exceptions.');
@@ -50,6 +58,7 @@ class ProcessSavings extends Command
             }
         } else {
             $processing->process($plan->id, $this->option('through'));
+
             if (SavingsException::where('savings_plan_id', $plan->id)->exists()) {
                 $this->error('Processing requires investigation. See the admin savings exceptions.');
 

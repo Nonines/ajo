@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Support\Money;
-use App\Support\MoneyCast;
+use App\Support\Money\Money;
+use App\Support\Money\MoneyCast;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 

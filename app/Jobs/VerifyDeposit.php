@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Deposit;
-use App\Support\Deposits;
+use App\Support\Payments\Deposits;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -23,6 +23,9 @@ class VerifyDeposit implements ShouldQueue
         $this->onConnection('redis')->onQueue('webhooks')->afterCommit();
     }
 
+    /**
+     * Reloads the deposit and verifies authoritative evidence before recognition.
+     */
     public function handle(Deposits $service): void
     {
         $service->verify(Deposit::findOrFail($this->depositId));

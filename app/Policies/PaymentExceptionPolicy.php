@@ -5,6 +5,9 @@ namespace App\Policies;
 use App\Models\PaymentException;
 use App\Models\Staff;
 
+/**
+ * Allows authorized investigation while preventing direct creation or deletion of evidence.
+ */
 class PaymentExceptionPolicy
 {
     public function viewAny(Staff $staff): bool

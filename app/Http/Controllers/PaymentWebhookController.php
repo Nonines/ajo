@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\PaymentInbox;
+use App\Support\Payments\PaymentInbox;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 

@@ -3,10 +3,10 @@
 use App\Contracts\Clock;
 use App\Models\AuditEvent;
 use App\Models\User;
-use App\Support\AuditTrail;
-use App\Support\FrozenClock;
-use App\Support\Ledger;
-use App\Support\Wallets;
+use App\Support\Audit\AuditTrail;
+use App\Support\Clock\FrozenClock;
+use App\Support\Ledger\Ledger;
+use App\Support\Ledger\Wallets;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;

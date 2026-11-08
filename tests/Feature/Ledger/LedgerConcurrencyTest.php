@@ -3,8 +3,8 @@
 use App\Models\Journal;
 use App\Models\LedgerAccount;
 use App\Models\User;
-use App\Support\Ledger;
-use App\Support\Wallets;
+use App\Support\Ledger\Ledger;
+use App\Support\Ledger\Wallets;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 
@@ -35,11 +35,11 @@ try {
         usleep(2500000);
         Illuminate\Support\Facades\DB::statement('ROLLBACK');
     } elseif ($argv[5] === 'close') {
-        app(App\Support\Wallets::class)->close(App\Models\User::findOrFail((int) $argv[2]));
+        app(App\Support\Ledger\Wallets::class)->close(App\Models\User::findOrFail((int) $argv[2]));
     } else {
-        app(App\Support\Ledger::class)->post($argv[6], [
-            ['account_id' => (int) $argv[3], 'amount' => new App\Support\Money((int) $argv[7])],
-            ['account_id' => (int) $argv[4], 'amount' => new App\Support\Money(-(int) $argv[7])],
+        app(App\Support\Ledger\Ledger::class)->post($argv[6], [
+            ['account_id' => (int) $argv[3], 'amount' => new App\Support\Money\Money((int) $argv[7])],
+            ['account_id' => (int) $argv[4], 'amount' => new App\Support\Money\Money(-(int) $argv[7])],
         ], '2026-11-02', 'Concurrent spend', (int) $argv[2]);
     }
     echo "success\n";

@@ -19,7 +19,7 @@ This is a plain-language guide to words, field names, settings, and rules used i
 
 ## Money and rates
 
-Sources: [Money](../app/Support/Money.php), [BasisPoints](../app/Support/BasisPoints.php), [savings interest](../app/Support/SavingsAccrual.php), and [withdrawals](../app/Support/Withdrawals.php).
+Sources: [Money](../app/Support/Money/Money.php), [BasisPoints](../app/Support/Money/BasisPoints.php), [savings interest](../app/Support/Savings/SavingsAccrual.php), and [withdrawals](../app/Support/Withdrawals/Withdrawals.php).
 
 | Term or field                          | What it means and what it affects                                                                                                                                                                                                                |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -47,7 +47,7 @@ Example: ₦100,000 at 12% yearly simple interest for 30 eligible days gives abo
 
 ## Wallets and the ledger
 
-Sources: [ledger](../app/Support/Ledger.php), [wallets](../app/Support/Wallets.php), and [financial transactions](../app/Support/FinancialTransaction.php).
+Sources: [ledger](../app/Support/Ledger/Ledger.php), [wallets](../app/Support/Ledger/Wallets.php), and [financial transactions](../app/Support/Ledger/FinancialTransaction.php).
 
 | Term or field                   | What it means and what it interacts with                                                                                                                                                                                          |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -74,7 +74,7 @@ Sources: [ledger](../app/Support/Ledger.php), [wallets](../app/Support/Wallets.p
 
 ## Savings
 
-Sources: [products](../app/Support/SavingsProducts.php), [plans](../app/Support/SavingsPlans.php), [accrual](../app/Support/SavingsAccrual.php), and [processing](../app/Support/SavingsProcessing.php).
+Sources: [products](../app/Support/Savings/SavingsProducts.php), [plans](../app/Support/Savings/SavingsPlans.php), [accrual](../app/Support/Savings/SavingsAccrual.php), and [processing](../app/Support/Savings/SavingsProcessing.php).
 
 | Term or field                  | What it means and what it interacts with                                                                                                                                                                       |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -106,11 +106,11 @@ Sources: [products](../app/Support/SavingsProducts.php), [plans](../app/Support/
 
 Calculation preparation stores a contract fingerprint and resumable checkpoints before funding. `preparationStatus` is `preparing`, `ready`, or `failed`. New plans and renewals initialize it transactionally. Legacy development records or imports that bypass preparation can remain blocked from UI funding.
 
-`parent_plan_id` links a renewed child to its parent. `rollover_election` stores the chosen term, amount mode, and consent. Capitalization moves recognized interest into interest-bearing principal. A penalty waiver has separate monetary caps for interest forfeiture and principal penalties, is single-use, and expires after approval. See [settlements](../app/Support/SavingsSettlements.php).
+`parent_plan_id` links a renewed child to its parent. `rollover_election` stores the chosen term, amount mode, and consent. Capitalization moves recognized interest into interest-bearing principal. A penalty waiver has separate monetary caps for interest forfeiture and principal penalties, is single-use, and expires after approval. See [settlements](../app/Support/Savings/SavingsSettlements.php).
 
 ## Deposits, withdrawals, and recovery
 
-Sources: [deposits](../app/Support/Deposits.php), [withdrawals](../app/Support/Withdrawals.php), [gateway routing](../app/Support/PaymentGateways.php), [payment inbox](../app/Support/PaymentInbox.php), [monitoring](../app/Support/PaymentMonitoring.php), and [recovery controls](../app/Support/RecoveryControls.php).
+Sources: [deposits](../app/Support/Payments/Deposits.php), [withdrawals](../app/Support/Withdrawals/Withdrawals.php), [gateway routing](../app/Support/Payments/PaymentGateways.php), [payment inbox](../app/Support/Payments/PaymentInbox.php), [monitoring](../app/Support/Payments/PaymentMonitoring.php), and [recovery controls](../app/Support/Ledger/RecoveryControls.php).
 
 | Term or field                         | What it means and what it interacts with                                                                                                                                                                                                                    |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -144,7 +144,7 @@ Sources: [deposits](../app/Support/Deposits.php), [withdrawals](../app/Support/W
 
 ## Staff controls and audit
 
-Sources: [approvals](../app/Support/Approvals.php), [audit trail](../app/Support/AuditTrail.php), [archives](../app/Support/AuditArchives.php), and [audit config](../config/audit.php).
+Sources: [approvals](../app/Support/Auth/Approvals.php), [audit trail](../app/Support/Audit/AuditTrail.php), [archives](../app/Support/Audit/AuditArchives.php), and [audit config](../config/audit.php).
 
 | Term or field                 | What it means and what it interacts with                                                                                                                     |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -178,17 +178,17 @@ These names describe settings, not the private values used by a running installa
 | `audit.online_days`                                       | How long audit events stay online before archive maintenance moves them to files. Current default: 365 days.                                                                                                                                                                        |
 | `audit.retention_years` / `audit.archive_disk`            | Archive retention period / storage location. Current defaults: 7 years and the `local` disk.                                                                                                                                                                                        |
 | `APP_KEY`                                                 | Laravel's encryption secret. It protects encrypted app data, including webhook payloads and audit archive contents. It does not replace the audit signing key. See [app config](../config/app.php).                                                                                 |
-| `PAYSTACK_SECRET_KEY`                                     | Server credential for the Paystack adapter. Also checks legacy webhook signatures. The current payment inbox requires a test secret in legacy mode. See [payment config](../config/payments.php) and [gateway](../app/Support/PaystackGateway.php).                                 |
-| `PAYSTACK_WEBHOOK_MODE`                                   | Chooses the signature format: `legacy` or `timestamped`. Default: `legacy`. See [payment inbox](../app/Support/PaymentInbox.php).                                                                                                                                                   |
+| `PAYSTACK_SECRET_KEY`                                     | Server credential for the Paystack adapter. Also checks legacy webhook signatures. The current payment inbox requires a test secret in legacy mode. See [payment config](../config/payments.php) and [gateway](../app/Support/Payments/PaystackGateway.php).                                 |
+| `PAYSTACK_WEBHOOK_MODE`                                   | Chooses the signature format: `legacy` or `timestamped`. Default: `legacy`. See [payment inbox](../app/Support/Payments/PaymentInbox.php).                                                                                                                                                   |
 | `PAYSTACK_WEBHOOK_SIGNING_SECRET`                         | Separate webhook secret used in timestamped mode. That mode checks both the signature and a 300-second time tolerance.                                                                                                                                                              |
 | `PAYSTACK_APPROVAL_TOKEN`                                 | Shared secret checked by the transfer approval callback. It is separate from the staff maker-checker decision. See [approval controller](../app/Http/Controllers/TransferApprovalController.php) and [withdrawal config](../config/withdrawals.php).                                |
-| `PAYMENT_SIMULATION_ENABLED`                              | Enables the payment simulator only alongside its other checks: an admin actor and a `local` or `testing` environment. Default: false. See [simulator](../app/Support/PaymentSimulator.php).                                                                                         |
-| `SIMULATOR_SIGNING_KEY`                                   | Secret used to sign and check simulated webhook evidence. It is separate from Paystack credentials. See [simulator](../app/Support/PaymentSimulator.php) and [payment inbox](../app/Support/PaymentInbox.php).                                                                      |
+| `PAYMENT_SIMULATION_ENABLED`                              | Enables the payment simulator only alongside its other checks: an admin actor and a `local` or `testing` environment. Default: false. See [simulator](../app/Support/Payments/PaymentSimulator.php).                                                                                         |
+| `SIMULATOR_SIGNING_KEY`                                   | Secret used to sign and check simulated webhook evidence. It is separate from Paystack credentials. See [simulator](../app/Support/Payments/PaymentSimulator.php) and [payment inbox](../app/Support/Payments/PaymentInbox.php).                                                                      |
 | `savings.withholding_bp`                                  | Default withholding rate supplied for products. Current default: `1000`, meaning 10%. Each contract keeps its own copy. See [savings config](../config/savings.php).                                                                                                                |
 | `savings.funding_hours`                                   | Funding window used when creating a plan. Current default: 24 hours.                                                                                                                                                                                                                |
 | `savings.preparation_steps`                               | Maximum calculation-preparation steps per invocation; default 1,000. Durable checkpoints allow later work to resume.                                                                                                                                                                |
 | `savings.waiver_hours`                                    | Approved waiver validity; default 24 hours from approval.                                                                                                                                                                                                                           |
-| `savings.processing_days`                                 | Bounds the number of accrual days handled in a processing pass. It is not the customer's selected term. See [savings processor](../app/Support/SavingsProcessing.php).                                                                                                              |
+| `savings.processing_days`                                 | Bounds the number of accrual days handled in a processing pass. It is not the customer's selected term. See [savings processor](../app/Support/Savings/SavingsProcessing.php).                                                                                                              |
 | `withdrawals.threshold`                                   | Default approval-path limit, snapshotted on a withdrawal. Current default: `10000000` kobo, or ₦100,000. The comparison includes the quoted fee.                                                                                                                                    |
 | `withdrawals.fee_tiers`                                   | Amount ceilings and their quoted withdrawal fees, all in kobo. This is separate from the final verified provider fee.                                                                                                                                                               |
 | `withdrawals.review_hours` / `withdrawals.approval_hours` | Time allowed for withdrawal review / the default expiry window for approval proposals. Current defaults: 24 hours each. Withdrawal proposals use the withdrawal's own expiry.                                                                                                       |
@@ -202,7 +202,7 @@ These names describe settings, not the private values used by a running installa
 
 ## Background work and time
 
-Sources: [schedule](../routes/console.php), [Horizon config](../config/horizon.php), [financial transactions](../app/Support/FinancialTransaction.php), [payment notices](../app/Support/PaymentNotices.php), and [clock](../app/Contracts/Clock.php).
+Sources: [schedule](../routes/console.php), [Horizon config](../config/horizon.php), [financial transactions](../app/Support/Ledger/FinancialTransaction.php), [payment notices](../app/Support/Payments/PaymentNotices.php), and [clock](../app/Contracts/Clock.php).
 
 | Term                   | Simple meaning                                                                                                                                                                                 |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

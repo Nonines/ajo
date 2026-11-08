@@ -4,9 +4,9 @@ namespace App\Contracts;
 
 use App\Models\Deposit;
 use App\Models\WithdrawalRequest;
-use App\Support\VerifiedPayment;
-use App\Support\VerifiedRefund;
-use App\Support\VerifiedTransfer;
+use App\Support\Payments\VerifiedPayment;
+use App\Support\Payments\VerifiedRefund;
+use App\Support\Payments\VerifiedTransfer;
 
 /**
  * Separates provider requests and parsed evidence from local financial recognition.

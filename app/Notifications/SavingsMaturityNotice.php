@@ -2,9 +2,13 @@
 
 namespace App\Notifications;
 
+use App\Support\Money\Money;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Formats savings closure and waiver evidence for customer email delivery.
+ */
 class SavingsMaturityNotice extends Notification
 {
     /** @param array<string, string> $data */
@@ -16,6 +20,9 @@ class SavingsMaturityNotice extends Notification
         return ['mail'];
     }
 
+    /**
+     * Describes the savings outcome with applicable settlement amounts or waiver limits.
+     */
     public function toMail(object $notifiable): MailMessage
     {
         $outcome = match ($this->data['type']) {
@@ -24,13 +31,14 @@ class SavingsMaturityNotice extends Notification
             default => str_replace('_', ' ', substr($this->data['type'], 8)),
         };
         $mail = (new MailMessage)->subject('Ajo savings: '.$outcome)->line('Your savings update: '.$outcome.'.');
+
         foreach (['principal', 'gross_interest', 'capitalized_interest', 'forfeiture', 'principal_penalty', 'waived_forfeiture', 'waived_penalty',
             'net_interest', 'withholding', 'debt_repayment', 'remaining_debt', 'wallet_credit', 'interest_cap', 'principal_cap'] as $key) {
             if (! isset($this->data[$key])) {
                 continue;
             }
-            $kobo = (int) $this->data[$key];
-            $mail->line(ucwords(str_replace('_', ' ', $key)).': NGN '.intdiv($kobo, 100).'.'.str_pad((string) ($kobo % 100), 2, '0', STR_PAD_LEFT));
+
+            $mail->line(ucwords(str_replace('_', ' ', $key)).': NGN '.(new Money($this->data[$key]))->toNaira());
         }
 
         if (isset($this->data['expires_at'])) {

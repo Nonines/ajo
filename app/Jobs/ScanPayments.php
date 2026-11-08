@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Support\PaymentMonitoring;
+use App\Support\Payments\PaymentMonitoring;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -22,6 +22,9 @@ class ScanPayments implements ShouldQueue
         $this->onConnection('redis')->onQueue('webhooks')->afterCommit();
     }
 
+    /**
+     * Resumes discovery for the saved resource from its durable checkpoint.
+     */
     public function handle(PaymentMonitoring $service): void
     {
         $service->scan($this->resource);

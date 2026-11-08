@@ -6,8 +6,8 @@ use App\Http\Requests\StoreDepositRequest;
 use App\Models\Deposit;
 use App\Models\LedgerAccount;
 use App\Models\PaymentReversal;
-use App\Support\Deposits;
-use App\Support\Ledger;
+use App\Support\Ledger\Ledger;
+use App\Support\Payments\Deposits;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,6 +43,7 @@ class DepositController extends Controller
     public function store(StoreDepositRequest $request, Deposits $deposits): RedirectResponse
     {
         abort_unless(str_starts_with((string) config('payments.secret_key'), 'sk_test_'), 503, 'Paystack test checkout is not configured.');
+
         try {
             $deposit = $deposits->initialize($request->user('web'), $request->money(), $request->validated('request_key'));
         } catch (DomainException $exception) {

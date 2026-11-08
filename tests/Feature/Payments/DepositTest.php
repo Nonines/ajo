@@ -4,14 +4,33 @@ use App\Models\Deposit;
 use App\Models\LedgerAccount;
 use App\Models\PaymentException;
 use App\Models\User;
-use App\Support\Deposits;
-use App\Support\Ledger;
-use App\Support\Money;
-use App\Support\Wallets;
+use App\Support\Ledger\Ledger;
+use App\Support\Ledger\Wallets;
+use App\Support\Money\Money;
+use App\Support\Payments\Deposits;
+use App\Support\Payments\DepositStates\Confirmed;
+use App\Support\Payments\DepositStates\Failed;
+use App\Support\Payments\DepositStates\Initiated;
+use App\Support\Payments\DepositStates\PendingConfirmation;
+use App\Support\Payments\DepositStates\Reversed;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+
+test('persisted deposit aliases hydrate their lifecycle states', function (string $alias, string $class) {
+    $deposit = Deposit::factory()->make();
+    $deposit->setRawAttributes(['state' => $alias], sync: true);
+
+    expect($deposit->state)->toBeInstanceOf($class);
+    expect((string) $deposit->state)->toBe($alias);
+})->with([
+    ['initiated', Initiated::class],
+    ['pending_confirmation', PendingConfirmation::class],
+    ['failed', Failed::class],
+    ['confirmed', Confirmed::class],
+    ['reversed', Reversed::class],
+]);
 
 test('checkout initializes once and rejects changed idempotent input without journals', function () {
     $user = User::factory()->create();

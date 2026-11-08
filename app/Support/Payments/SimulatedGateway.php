@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Support\Payments;
+
+use App\Models\Deposit;
+use App\Models\PaymentSimulation;
+use App\Models\WithdrawalRequest;
+use App\Support\Withdrawals\Withdrawals;
+use DomainException;
+
+/**
+ * Parses local simulation evidence through the ordinary financial verification value objects.
+ */
+class SimulatedGateway
+{
+    /**
+     * Parses saved simulation evidence only after checking its deposit provenance.
+     */
+    public function verify(string $reference): VerifiedPayment
+    {
+        $simulation = $this->simulation($reference, Deposit::class);
+
+        return VerifiedPayment::from($simulation->evidence);
+    }
+
+    /**
+     * Exercises the server-approval checks for a simulated payout before returning its reference.
+     *
+     * @return array<string, mixed>
+     */
+    public function transfer(WithdrawalRequest $withdrawal): array
+    {
+        $this->simulation($withdrawal->reference, WithdrawalRequest::class);
+
+        if (! app(Withdrawals::class)->providerApproval(['reference' => $withdrawal->reference,
+            'amount' => (string) $withdrawal->principal, 'recipient' => $withdrawal->destination['recipient_code'],
+            'currency' => 'NGN', 'source' => 'balance'], 'simulated')) {
+            throw new DomainException('Simulated server approval was rejected.');
+        }
+
+        return ['reference' => $withdrawal->reference];
+    }
+
+    /**
+     * Parses saved simulation evidence only after checking its payout provenance.
+     */
+    public function verifyTransfer(string $reference): VerifiedTransfer
+    {
+        return VerifiedTransfer::from($this->simulation($reference, WithdrawalRequest::class)->evidence);
+    }
+
+    /**
+     * Builds fully deducted refund evidence for an existing simulated deposit.
+     */
+    public function refund(string $id): VerifiedRefund
+    {
+        $simulation = PaymentSimulation::where('refund_id', $id)->sole();
+        $deposit = Deposit::findOrFail($simulation->subject_id);
+        $this->simulation($deposit->reference, Deposit::class);
+        $amount = $deposit->gross_amount;
+
+        return VerifiedRefund::from(['id' => $id, 'transaction' => $deposit->provider_id, 'domain' => 'test', 'currency' => 'NGN',
+            'amount' => $amount, 'deducted_amount' => $amount, 'fully_deducted' => true, 'status' => 'processed']);
+    }
+
+    /**
+     * Requires an enabled environment and a subject whose persisted origin and reference match.
+     */
+    private function simulation(string $reference, string $class): PaymentSimulation
+    {
+        if (! app()->environment(['local', 'testing', 'demo']) || config('withdrawals.simulation_enabled') !== true) {
+            throw new DomainException('Simulated verification is disabled in this environment.');
+        }
+
+        $simulation = PaymentSimulation::where('reference', $reference)->where('subject_type', $class)->sole();
+        $subject = $class::findOrFail($simulation->subject_id);
+
+        if ($subject->origin !== 'simulated' || $subject->reference !== $reference) {
+            throw new DomainException('Real transactions cannot use simulated verification.');
+        }
+
+        return $simulation;
+    }
+}

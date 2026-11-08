@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Contracts\Clock;
 use App\Models\SavingsPlan;
-use App\Support\SavingsProcessing;
+use App\Support\Savings\SavingsProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;

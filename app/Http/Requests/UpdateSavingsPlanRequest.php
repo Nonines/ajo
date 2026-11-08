@@ -6,8 +6,14 @@ use App\Models\SavingsPlan;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Validates the action-specific inputs for owned savings lifecycle operations.
+ */
 class UpdateSavingsPlanRequest extends FormRequest
 {
+    /**
+     * Requires an owned plan and an active, email-verified customer.
+     */
     public function authorize(): bool
     {
         $user = $this->user('web');

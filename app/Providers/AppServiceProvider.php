@@ -4,12 +4,12 @@ namespace App\Providers;
 
 use App\Contracts\Clock;
 use App\Contracts\PaymentGateway;
-use App\Support\AuditTrail;
-use App\Support\DemoClock;
-use App\Support\FinancialTransaction;
-use App\Support\PaymentGateways;
-use App\Support\SecurityAudit;
-use App\Support\SystemClock;
+use App\Support\Audit\AuditTrail;
+use App\Support\Audit\SecurityAudit;
+use App\Support\Clock\DemoClock;
+use App\Support\Clock\SystemClock;
+use App\Support\Ledger\FinancialTransaction;
+use App\Support\Payments\PaymentGateways;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Queue\Events\JobExceptionOccurred;
@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Binds financial infrastructure and registers audit protections and application defaults.
+ */
 class AppServiceProvider extends ServiceProvider
 {
     /**

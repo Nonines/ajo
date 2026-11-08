@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Support\WithdrawalStates\WithdrawalState;
+use App\Support\Withdrawals\WithdrawalStates\WithdrawalState;
 use Carbon\CarbonImmutable;
 use Database\Factories\WithdrawalRequestFactory;
 use Illuminate\Database\Eloquent\Attributes\Hidden;

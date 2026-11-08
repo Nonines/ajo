@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Support\PlanStates\PlanState;
+use App\Support\Savings\PlanStates\PlanState;
 use Carbon\CarbonImmutable;
 use Database\Factories\SavingsPlanFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

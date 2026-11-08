@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Support\DepositStates\DepositState;
+use App\Support\Payments\DepositStates\DepositState;
 use Carbon\CarbonImmutable;
 use Database\Factories\DepositFactory;
 use Illuminate\Database\Eloquent\Attributes\Hidden;

@@ -8,7 +8,7 @@ use App\Jobs\VerifyDeposit;
 use App\Jobs\VerifyWithdrawal;
 use App\Models\PaymentException;
 use App\Models\WebhookEvent;
-use App\Support\PaymentInbox;
+use App\Support\Payments\PaymentInbox;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
@@ -24,6 +24,9 @@ class PaymentExceptionResource extends Resource
 {
     protected static ?string $model = PaymentException::class;
 
+    /**
+     * Offers verification retries for unresolved evidence without assigning financial outcomes.
+     */
     public static function table(Table $table): Table
     {
         return $table->defaultSort('id', 'desc')->columns([
@@ -36,14 +39,17 @@ class PaymentExceptionResource extends Resource
                 ->visible(fn (PaymentException $record): bool => $record->resolved_at === null)
                 ->action(function (PaymentException $record, PaymentInbox $inbox): void {
                     Gate::authorize('update', $record);
+
                     if ($record->resource_type === 'withdrawal' && $record->resource_id !== null) {
                         VerifyWithdrawal::dispatch((int) $record->resource_id);
                     } elseif ($record->resource_type !== null && $record->resource_id !== null) {
                         $inbox->observe($record->resource_type, ['id' => $record->resource_id, 'staff_retry' => (string) Str::uuid()]);
                     }
+
                     if ($record->deposit_id !== null) {
                         VerifyDeposit::dispatch($record->deposit_id);
                     }
+
                     if ($record->webhook_event_id !== null) {
                         WebhookEvent::whereKey($record->webhook_event_id)->update(['processed_at' => null]);
                         ProcessPaymentWebhook::dispatch($record->webhook_event_id);

@@ -18,6 +18,9 @@ class SavingsExceptionResource extends Resource
 {
     protected static ?string $model = SavingsException::class;
 
+    /**
+     * Restricts this view to eligible staff with exceptions.manage permission.
+     */
     public static function canViewAny(): bool
     {
         $staff = Filament::auth()->user();
@@ -40,6 +43,9 @@ class SavingsExceptionResource extends Resource
         return false;
     }
 
+    /**
+     * Shows retained savings failures without allowing staff to erase their evidence.
+     */
     public static function table(Table $table): Table
     {
         return $table->columns([TextColumn::make('savings_plan_id')->label('Plan'), TextColumn::make('operation'),

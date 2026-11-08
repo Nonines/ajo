@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Support\DemoHistory;
+use App\Support\Demo\DemoHistory;
 use Illuminate\Database\Seeder;
 
 /**

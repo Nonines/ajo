@@ -5,7 +5,7 @@ namespace App\Filament\Resources\PaymentSimulations;
 use App\Filament\Resources\PaymentSimulations\Pages\ManagePaymentSimulations;
 use App\Models\PaymentSimulation;
 use App\Models\Staff;
-use App\Support\PaymentSimulator;
+use App\Support\Payments\PaymentSimulator;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -21,6 +21,9 @@ class PaymentSimulationResource extends Resource
 {
     protected static ?string $model = PaymentSimulation::class;
 
+    /**
+     * Restricts this view to eligible staff with simulator.use permission.
+     */
     public static function canViewAny(): bool
     {
         $staff = Filament::auth()->user();
@@ -44,6 +47,9 @@ class PaymentSimulationResource extends Resource
         return false;
     }
 
+    /**
+     * Routes selected simulated outcomes through ordinary verification paths.
+     */
     public static function table(Table $table): Table
     {
         return $table->defaultSort('id', 'desc')->columns([TextColumn::make('reference')->searchable(),

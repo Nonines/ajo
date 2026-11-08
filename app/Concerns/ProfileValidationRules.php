@@ -6,6 +6,9 @@ use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 
+/**
+ * Shares customer profile rules while excluding the current identity from uniqueness checks.
+ */
 trait ProfileValidationRules
 {
     /**

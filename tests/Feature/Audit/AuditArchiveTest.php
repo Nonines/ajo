@@ -2,9 +2,9 @@
 
 use App\Contracts\Clock;
 use App\Models\AuditEvent;
-use App\Support\AuditArchives;
-use App\Support\AuditTrail;
-use App\Support\FrozenClock;
+use App\Support\Audit\AuditArchives;
+use App\Support\Audit\AuditTrail;
+use App\Support\Clock\FrozenClock;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Database\QueryException;

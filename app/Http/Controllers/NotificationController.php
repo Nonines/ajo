@@ -12,6 +12,9 @@ use Inertia\Response;
  */
 class NotificationController extends Controller
 {
+    /**
+     * Paginates only the active customer's notifications, including their read status.
+     */
     public function index(Request $request): Response
     {
         abort_unless($request->user('web')->is_active, 403);

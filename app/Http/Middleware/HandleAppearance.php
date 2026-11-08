@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Shares the appearance cookie with the initial server-rendered page.
+ */
 class HandleAppearance
 {
     /**

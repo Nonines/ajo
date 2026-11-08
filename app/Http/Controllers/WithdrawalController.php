@@ -8,8 +8,8 @@ use App\Models\LedgerAccount;
 use App\Models\PaymentException;
 use App\Models\SavedDestination;
 use App\Models\WithdrawalRequest;
-use App\Support\Ledger;
-use App\Support\Withdrawals;
+use App\Support\Ledger\Ledger;
+use App\Support\Withdrawals\Withdrawals;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +30,7 @@ class WithdrawalController extends Controller
     {
         $user = $request->user('web');
         abort_unless($user->is_active, 403);
+
         try {
             $banks = $gateway->banks();
         } catch (\Throwable) {
@@ -57,6 +58,7 @@ class WithdrawalController extends Controller
     public function store(StoreWithdrawalRequest $request, Withdrawals $withdrawals): RedirectResponse
     {
         $destination = SavedDestination::where('user_id', $request->user('web')->id)->findOrFail($request->integer('destination_id'));
+
         try {
             $withdrawal = $withdrawals->request($request->user('web'), $destination, $request->money(), $request->string('request_key')->toString());
         } catch (DomainException $exception) {
@@ -85,6 +87,7 @@ class WithdrawalController extends Controller
     {
         abort_unless($request->user('web')->is_active, 403);
         abort_unless($withdrawal->user_id === $request->user('web')->id, 404);
+
         try {
             $withdrawals->cancel($request->user('web'), $withdrawal);
         } catch (DomainException $exception) {

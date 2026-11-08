@@ -9,10 +9,10 @@ use App\Models\ApprovalRequest;
 use App\Models\LedgerAccount;
 use App\Models\SavingsPlan;
 use App\Models\SavingsProductVersion;
-use App\Support\Ledger;
-use App\Support\SavingsAccrual;
-use App\Support\SavingsPlans;
-use App\Support\SavingsSettlements;
+use App\Support\Ledger\Ledger;
+use App\Support\Savings\SavingsAccrual;
+use App\Support\Savings\SavingsPlans;
+use App\Support\Savings\SavingsSettlements;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -69,20 +69,28 @@ class SavingsPlanController extends Controller
         abort_unless($plan->user_id === $request->user('web')->id, 404);
         $settlement = DB::table('plan_settlements')->where('savings_plan_id', $plan->id)->first();
         $statement = null;
+
+        // Keep settlement amounts as strings when transporting immutable financial evidence.
         if ($settlement !== null) {
             $statement = [];
+
             foreach (['principal', 'gross_interest', 'net_interest', 'withholding', 'debt_repayment', 'remaining_debt', 'wallet_credit', 'rounding_micro_kobo', 'journal_id', 'posted_at',
                 'capitalized_interest', 'forfeiture', 'forfeited_capitalized', 'forfeited_payable', 'principal_penalty', 'waived_forfeiture', 'waived_penalty', 'incurred_fees', 'accrual_through'] as $field) {
                 $statement[$field] = (string) $settlement->$field;
             }
+
             $statement['remaining_principal'] = (string) ($settlement->remaining_principal ?? $settlement->principal);
         }
+
+        // Expose early-exit eligibility as guidance; the service rechecks it on confirmation.
         $exitUnavailable = null;
+
         try {
             $settlements->earlyEligible($plan);
         } catch (DomainException $exception) {
             $exitUnavailable = $exception->getMessage();
         }
+
         $source = SavingsProductVersion::findOrFail($plan->savings_product_version_id);
         $current = SavingsProductVersion::where('savings_product_id', $source->savings_product_id)->orderByDesc('version')->first();
 
@@ -112,6 +120,7 @@ class SavingsPlanController extends Controller
         abort_unless($request->user('web')->is_active, 403);
         abort_unless($plan->user_id === $request->user('web')->id, 404);
         $request->validate(['waiver_id' => ['nullable', 'integer', 'min:1']]);
+
         try {
             return response()->json($settlements->preview($request->user('web'), $plan, $request->filled('waiver_id') ? $request->integer('waiver_id') : null));
         } catch (DomainException $exception) {
@@ -127,6 +136,7 @@ class SavingsPlanController extends Controller
         abort_unless($request->user('web')->is_active, 403);
         abort_unless($plan->user_id === $request->user('web')->id, 404);
         $data = $request->validated();
+
         try {
             match ($data['action']) {
                 'accept' => $plans->accept($request->user('web'), $plan),
@@ -167,14 +177,17 @@ class SavingsPlanController extends Controller
     private function transportContract(array $contract): array
     {
         $contract['withholding_bp'] = (string) $contract['withholding_bp'];
+
         foreach (['forfeiture_bp', 'principal_penalty_bp'] as $key) {
             if (isset($contract[$key])) {
                 $contract[$key] = (string) $contract[$key];
             }
         }
+
         if (isset($contract['annual_rate_bp'])) {
             $contract['annual_rate_bp'] = (string) $contract['annual_rate_bp'];
         }
+
         $contract['terms'] = array_map(static fn (array $term): array => ['days' => $term['days'], 'annual_rate_bp' => (string) $term['annual_rate_bp']], $contract['terms']);
 
         return $contract;

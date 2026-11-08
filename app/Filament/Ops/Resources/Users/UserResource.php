@@ -6,8 +6,8 @@ use App\Filament\Ops\Resources\Users\Pages\ManageUsers;
 use App\Models\LedgerAccount;
 use App\Models\Staff;
 use App\Models\User;
-use App\Support\Approvals;
-use App\Support\Ledger;
+use App\Support\Auth\Approvals;
+use App\Support\Ledger\Ledger;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
@@ -28,6 +28,9 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Customers and recovery';
 
+    /**
+     * Restricts this view to eligible staff with customers.view permission.
+     */
     public static function canViewAny(): bool
     {
         $staff = Filament::auth()->user();
@@ -50,14 +53,21 @@ class UserResource extends Resource
         return false;
     }
 
+    /**
+     * Combines ledger-derived balances with recovery and adjustment proposals.
+     */
     public static function table(Table $table): Table
     {
         $actions = [];
+
+        // Propose recovery changes for independent approval instead of mutating balances.
         foreach (['release', 'write-off'] as $action) {
             $fields = [Textarea::make('reason')->required()->maxLength(10000)];
+
             if ($action === 'write-off') {
                 $fields[] = TextInput::make('amount')->label('Write-off (kobo)')->required()->rules(['regex:/^[1-9][0-9]*$/D']);
             }
+
             $actions[] = Action::make($action)->label('Propose recovery '.$action)->schema($fields)
                 ->visible(fn (): bool => Filament::auth()->user()?->can('recovery.'.$action) ?? false)
                 ->action(function (User $record, array $data) use ($action): void {
@@ -67,6 +77,8 @@ class UserResource extends Resource
                         $action === 'write-off' ? ['amount' => $data['amount']] : [], $data['reason']);
                 });
         }
+
+        // Limit manual adjustments to house accounts and the selected customer wallet.
         $actions[] = Action::make('adjustment')->label('Propose ledger adjustment')->schema([
             Textarea::make('reason')->required()->maxLength(10000),
             TextInput::make('effective_date')->type('date')->required(),
@@ -96,9 +108,11 @@ class UserResource extends Resource
     private static function balance(User $user, string $suffix, bool $normalize = false): string
     {
         $account = LedgerAccount::where('code', 'customer:'.$user->id.':'.$suffix)->first();
+
         if ($account === null) {
             return '0';
         }
+
         $money = app(Ledger::class)->balance($account);
 
         return (string) ($normalize ? $money->negate()->kobo : $money->kobo);
