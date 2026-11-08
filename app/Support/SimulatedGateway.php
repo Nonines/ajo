@@ -57,7 +57,7 @@ class SimulatedGateway
      */
     private function simulation(string $reference, string $class): PaymentSimulation
     {
-        if (! app()->environment(['local', 'testing']) || config('withdrawals.simulation_enabled') !== true) {
+        if (! app()->environment(['local', 'testing', 'demo']) || config('withdrawals.simulation_enabled') !== true) {
             throw new DomainException('Simulated verification is disabled in this environment.');
         }
         $simulation = PaymentSimulation::where('reference', $reference)->where('subject_type', $class)->sole();

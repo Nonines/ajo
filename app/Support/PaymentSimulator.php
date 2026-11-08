@@ -27,8 +27,8 @@ class PaymentSimulator
     public function authorize(Staff $staff): void
     {
         $current = app(Approvals::class)->authorize($staff, 'simulator.use');
-        if (! $current->hasRole('admin') || ! app()->environment(['local', 'testing']) || config('withdrawals.simulation_enabled') !== true) {
-            throw new AuthorizationException('Payment simulation is restricted to enabled local or testing environments and administrators.');
+        if (! $current->hasRole('admin') || ! app()->environment(['local', 'testing', 'demo']) || config('withdrawals.simulation_enabled') !== true) {
+            throw new AuthorizationException('Payment simulation is restricted to enabled local, testing, or demo environments and administrators.');
         }
     }
 

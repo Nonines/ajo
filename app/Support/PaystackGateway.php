@@ -186,6 +186,9 @@ class PaystackGateway implements PaymentGateway
      */
     private function request(string $method, string $path, array $parameters = [], bool $includeMetadata = false): array
     {
+        if (app()->environment('demo')) {
+            throw new GatewayFailure('Paystack requests are disabled in demo. Use the payment simulator.');
+        }
         $secret = config('payments.secret_key');
         if (! is_string($secret) || ! str_starts_with($secret, 'sk_test_')) {
             throw new GatewayFailure('A Paystack test secret is required.');

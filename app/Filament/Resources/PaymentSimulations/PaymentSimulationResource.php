@@ -15,7 +15,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Exposes outcome scenarios only to permitted administrators in enabled local or test environments.
+ * Exposes outcome scenarios only to permitted administrators in enabled local, testing, or demo environments.
  */
 class PaymentSimulationResource extends Resource
 {
@@ -26,7 +26,7 @@ class PaymentSimulationResource extends Resource
         $staff = Filament::auth()->user();
 
         return $staff instanceof Staff && $staff->is_active && $staff->hasRole('admin') && $staff->can('simulator.use')
-            && app()->environment(['local', 'testing']) && config('withdrawals.simulation_enabled') === true;
+            && app()->environment(['local', 'testing', 'demo']) && config('withdrawals.simulation_enabled') === true;
     }
 
     public static function canCreate(): bool

@@ -66,12 +66,12 @@ class PaymentInbox
     }
 
     /**
-     * Accepts separately signed simulated events only in explicitly enabled local or test environments.
+     * Accepts separately signed simulated events only in explicitly enabled local, testing, or demo environments.
      */
     public function receiveSimulated(string $raw, string $signature): WebhookEvent
     {
         $secret = config('withdrawals.simulation_signing_key');
-        if (! app()->environment(['local', 'testing']) || config('withdrawals.simulation_enabled') !== true
+        if (! app()->environment(['local', 'testing', 'demo']) || config('withdrawals.simulation_enabled') !== true
             || ! is_string($secret) || strlen($secret) < 32 || ! hash_equals(hash_hmac('sha512', $raw, $secret), $signature)) {
             throw new HttpException(401, 'Invalid simulated webhook signature or environment.');
         }

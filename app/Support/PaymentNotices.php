@@ -77,8 +77,10 @@ class PaymentNotices
             if ($notice->mail_sent_at !== null) {
                 return;
             }
-            Notification::route('mail', $notice->recipient)->notify(str_starts_with($notice->data['type'], 'withdrawal_')
-                ? new WithdrawalStatusNotice($notice->data) : new PaymentStatusNotice($notice->data));
+            if (! app()->environment('demo')) {
+                Notification::route('mail', $notice->recipient)->notify(str_starts_with($notice->data['type'], 'withdrawal_')
+                    ? new WithdrawalStatusNotice($notice->data) : new PaymentStatusNotice($notice->data));
+            }
             $notice->forceFill(['mail_sent_at' => $this->clock->now()])->save();
         } catch (Throwable $exception) {
             PaymentNotice::whereKey($id)->update(['next_attempt_at' => $this->clock->now()->addMinutes(config('payments.notification_retry_minutes'))]);

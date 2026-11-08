@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'redis'),
+    'default' => env('APP_ENV') === 'demo' ? 'sync' : env('QUEUE_CONNECTION', 'redis'),
 
     /*
     |--------------------------------------------------------------------------
@@ -65,7 +65,8 @@ return [
         ],
 
         'redis' => [
-            'driver' => 'redis',
+            // Financial jobs select this connection explicitly; finish demo work before advancing time.
+            'driver' => env('APP_ENV') === 'demo' ? 'sync' : 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),

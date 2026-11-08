@@ -51,6 +51,9 @@ class PaymentMonitoring
             $notice->forceFill(['next_attempt_at' => $now->addMinutes(config('payments.notification_retry_minutes'))])->save();
             $this->dispatch(fn () => DeliverPaymentNotice::dispatch($notice->id));
         }
+        if (app()->environment('demo')) {
+            return;
+        }
         foreach (PaymentException::where('provider_open', true)->whereNotNull('resource_id')->where(fn ($query) => $query->whereNull('last_checked_at')->orWhere('last_checked_at', '<=', $now->subMinutes(5)))->orderBy('last_checked_at')->limit($limit)->get() as $case) {
             $this->inbox->observe((string) $case->resource_type, ['id' => $case->resource_id, 'recheck_at' => $now->toIso8601String()]);
             $case->forceFill(['last_checked_at' => $now])->save();
@@ -77,6 +80,9 @@ class PaymentMonitoring
      */
     public function scan(string $resource): void
     {
+        if (app()->environment('demo')) {
+            return;
+        }
         if (! in_array($resource, ['transaction', 'refund', 'dispute'], true)) {
             throw new \DomainException('Unsupported provider scan.');
         }

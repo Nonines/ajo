@@ -81,7 +81,9 @@ class SavingsNotices
                 'notifiable_type' => User::class, 'notifiable_id' => $notice->user_id,
                 'data' => json_encode($notice->data, JSON_THROW_ON_ERROR), 'created_at' => $this->clock->now(), 'updated_at' => $this->clock->now()]);
             if ($notice->mail_sent_at === null) {
-                Notification::route('mail', $notice->recipient)->notify(new SavingsMaturityNotice($notice->data));
+                if (! app()->environment('demo')) {
+                    Notification::route('mail', $notice->recipient)->notify(new SavingsMaturityNotice($notice->data));
+                }
                 $notice->forceFill(['mail_sent_at' => $this->clock->now()])->save();
             }
         } catch (Throwable $exception) {
