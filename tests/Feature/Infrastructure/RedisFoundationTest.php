@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Laravel\Horizon\ProvisioningPlan;
 
-final class PhaseZeroQueueProbe implements ShouldQueue
+final class RedisQueueProbe implements ShouldQueue
 {
     public function __construct(public string $key) {}
 
@@ -35,7 +35,7 @@ test('Redis locks reject competitors and allow acquisition after release', funct
     if (getenv('RUN_REDIS_TESTS') !== '1') {
         $this->markTestSkipped('Run with RUN_REDIS_TESTS=1 and a Redis service.');
     }
-    $key = 'phase0-test:'.Str::uuid();
+    $key = 'redis-test:'.Str::uuid();
     $lock = Cache::store('redis')->lock($key, 10);
     $competitor = Cache::store('redis')->lock($key, 10);
 
@@ -54,13 +54,13 @@ test('Redis queues persist and execute jobs with isolated queue names', function
     if (getenv('RUN_REDIS_TESTS') !== '1') {
         $this->markTestSkipped('Run with RUN_REDIS_TESTS=1 and a Redis service.');
     }
-    $key = 'phase0-test:'.Str::uuid();
+    $key = 'redis-test:'.Str::uuid();
     $queueName = $key.':'.$workload;
     $queue = Queue::connection('redis');
     $job = null;
 
     try {
-        $queue->push(new PhaseZeroQueueProbe($key), queue: $queueName);
+        $queue->push(new RedisQueueProbe($key), queue: $queueName);
         expect($queue->size($queueName))->toBe(1);
         $job = $queue->pop($queueName);
         expect($job)->not->toBeNull();

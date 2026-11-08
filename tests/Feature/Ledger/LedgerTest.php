@@ -139,7 +139,7 @@ test('large cancelling entries and ledger aggregates remain exact', function () 
     $this->assertDatabaseCount('journals', 1);
 });
 
-test('seeded valid operation sequences preserve every phase one invariant', function (int $seed) {
+test('seeded valid operation sequences preserve ledger invariants', function (int $seed) {
     $random = new Randomizer(new Mt19937($seed));
     $user = User::factory()->create();
     $wallet = app(Wallets::class)->provision($user);
