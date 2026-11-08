@@ -1,7 +1,7 @@
 <script module lang="ts">
     export const layout = {
-        title: 'Reset password',
-        description: 'Please enter your new password below',
+        title: 'Make it a strong one.',
+        description: 'Choose a new password to get back to your account.',
     };
 </script>
 

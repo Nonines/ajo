@@ -1,7 +1,7 @@
 <script module lang="ts">
     export const layout = {
-        title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        title: 'Welcome back.',
+        description: 'Your next chapter is right where you left it. Log in to carry on.',
     };
 </script>
 

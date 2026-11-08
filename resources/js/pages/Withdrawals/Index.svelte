@@ -36,18 +36,18 @@
 </script>
 
 <AppHead title="Withdrawals" />
-<div class="flex flex-1 flex-col gap-8 p-6 sm:p-10">
-    <section class="rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[4px_4px_0_var(--foreground)]">
-        <p class="font-mono text-xs font-bold tracking-widest uppercase">Your wallet / withdrawals</p>
-        <h1 class="mt-4 font-display text-4xl font-black">Ready when you are.</h1>
+<div class="page-stack">
+    <section class="page-intro">
+        <p class="eyebrow">Your wallet / withdrawals</p>
+        <h1 class="mt-4 font-display text-4xl font-black tracking-[-.045em]">Ready when you are.</h1>
         <p class="mt-4">Available: <strong>{formatMoney(balance)}</strong>. Staff review each request before payout.</p>
     </section>
     {#if debt !== '0'}
-        <p class="rounded-md border-2 border-foreground bg-card p-6">Recovery balance: {formatMoney(debt)}. Withdrawals are restricted until it is repaid or written off through staff approval. Incoming funds repay debt first.</p>
+        <p class="panel">Recovery balance: {formatMoney(debt)}. Withdrawals are restricted until it is repaid or written off through staff approval. Incoming funds repay debt first.</p>
     {/if}
     <div class="grid gap-6 lg:grid-cols-2">
-        <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-            <h2 class="text-2xl font-bold">Request a withdrawal</h2>
+        <section class="grid gap-4 panel">
+            <h2 class="section-title">Request a withdrawal</h2>
             <Form {...store.form()} class="grid gap-4">
                 {#snippet children({ errors, processing })}
                     <input type="hidden" name="request_key" value={requestKey} />
@@ -70,8 +70,8 @@
                 {/snippet}
             </Form>
         </section>
-        <section class="grid gap-4 rounded-md border-2 border-foreground bg-card p-6">
-            <h2 class="text-2xl font-bold">Save a bank account</h2>
+        <section class="grid gap-4 panel">
+            <h2 class="section-title">Save a bank account</h2>
             <p>We resolve the account name before saving. You can use an account belonging to someone else.</p>
             <Form {...saveDestination.form()} class="grid gap-4" resetOnSuccess>
                 {#snippet children({ errors, processing })}
@@ -92,11 +92,11 @@
         </section>
     </div>
     <section class="grid gap-4">
-        <h2 class="font-display text-3xl font-black">Your requests.</h2>
-        {#if withdrawals.data.length === 0}<p>No withdrawal requests yet.</p>{/if}
+        <h2 class="font-display text-2xl font-bold tracking-tight">Your requests.</h2>
+        {#if withdrawals.data.length === 0}<p class="empty-state">No withdrawal requests yet. When you make one, you can follow its progress here.</p>{/if}
         {#each withdrawals.data as withdrawal (withdrawal.id)}
-            <Link href={show(withdrawal.id)} class="flex flex-wrap justify-between gap-3 rounded-md border-2 border-foreground bg-card p-6 underline">
-                <span>{formatMoney(withdrawal.principal)} / {withdrawal.accountNumber}</span><span>{withdrawal.state.replaceAll('_', ' ')}</span>
+            <Link href={show(withdrawal.id)} class="flex flex-wrap justify-between gap-3 record-link">
+                <span>{formatMoney(withdrawal.principal)} / {withdrawal.accountNumber}</span><span class="status-label">{withdrawal.state.replaceAll('_', ' ')}</span>
             </Link>
         {/each}
         <nav class="flex gap-4" aria-label="Withdrawal pages">

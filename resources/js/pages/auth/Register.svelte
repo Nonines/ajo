@@ -1,7 +1,7 @@
 <script module lang="ts">
     export const layout = {
-        title: 'Create an account',
-        description: 'Enter your details below to create your account',
+        title: 'A little start. A lot ahead.',
+        description: 'Make yourself at home. Create your account to get started.',
     };
 </script>
 

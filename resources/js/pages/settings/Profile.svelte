@@ -29,8 +29,6 @@
 
 <AppHead title="Profile settings" />
 
-<h1 class="sr-only">Profile settings</h1>
-
 <div class="flex flex-col space-y-6">
     <Heading
         variant="small"

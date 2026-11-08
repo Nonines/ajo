@@ -23,20 +23,21 @@
 </script>
 
 <AppHead title="Add money" />
-<div class="flex flex-1 flex-col gap-8 p-6 sm:p-10">
-    <section class="rounded-md border-2 border-foreground bg-primary p-6 text-primary-foreground shadow-[4px_4px_0_var(--foreground)]">
-        <p class="font-mono text-xs font-bold tracking-widest uppercase">Your wallet / add money</p>
-        <h1 class="mt-4 font-display text-4xl font-black">Make room for your next goal.</h1>
+<div class="page-stack">
+    <section class="page-intro">
+        <p class="eyebrow">Your wallet / add money</p>
+        <h1 class="mt-4 font-display text-4xl font-black tracking-[-.045em]">Make room for your next goal.</h1>
         <p class="mt-4">Choose the net amount to add. Paystack adds its processing fee at checkout. Payments are test-mode only.</p>
     </section>
     {#if remainingDebt !== '0'}
-        <section class="rounded-md border-2 border-foreground bg-card p-6">
+        <section class="panel">
             <h2 class="text-lg font-bold">Recovery balance: {formatMoney(remainingDebt)}</h2>
             <p class="mt-2">Incoming funds first repay this balance. Your receipt shows how much repays debt and how much reaches your available wallet. Recovery can also apply after a verified payment reversal, including incurred fees.</p>
         </section>
     {/if}
-    <section class="rounded-md border-2 border-foreground bg-card p-6">
-        <h2 class="mb-4 text-2xl font-bold">Start a deposit</h2>
+    <div class="grid items-start gap-6 lg:grid-cols-[1.2fr_1fr]">
+    <section class="panel">
+        <h2 class="mb-4 section-title">Start a deposit</h2>
         {#if checkoutAvailable}
             <Form {...store.form()} class="grid max-w-lg gap-4">
                 {#snippet children({ errors, processing })}
@@ -53,9 +54,9 @@
             <p>Test checkout is not configured yet. You can still view your deposit history.</p>
         {/if}
     </section>
-    <section class="rounded-md border-2 border-foreground bg-card p-6">
-        <h2 class="text-2xl font-bold">Deposit history</h2>
-        {#if deposits.data.length === 0}<p class="mt-4 text-muted-foreground">Your deposits will appear here.</p>{/if}
+    <section class="panel">
+        <h2 class="section-title">Deposit history</h2>
+        {#if deposits.data.length === 0}<p class="empty-state mt-6">No deposits yet. Your first deposit and its status will appear here.</p>{/if}
         <ul class="mt-4 divide-y divide-border">
             {#each deposits.data as deposit (deposit.id)}
                 <li class="flex flex-wrap items-center justify-between gap-3 py-4">
@@ -69,4 +70,5 @@
             {#if deposits.next_page_url}<Link href={index({ query: { page: new URL(deposits.next_page_url).searchParams.get('page') } })}>Next</Link>{/if}
         </nav>
     </section>
+    </div>
 </div>

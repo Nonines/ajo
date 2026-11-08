@@ -19,8 +19,6 @@
 
 <AppHead title="Appearance settings" />
 
-<h1 class="sr-only">Appearance settings</h1>
-
 <div class="space-y-6">
     <Heading
         variant="small"

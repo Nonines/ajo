@@ -1,6 +1,6 @@
 <script module lang="ts">
     export const layout = {
-        title: 'Email verification',
+        title: 'One little check.',
         description:
             'Please verify your email address by clicking on the link we just emailed to you.',
     };
