@@ -6,6 +6,9 @@ use App\Support\SavingsNotices;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
+/**
+ * Delivers a durable savings notice after commit; discovery recovers unsent intent.
+ */
 class DeliverSavingsNotice implements ShouldQueue
 {
     use Queueable;

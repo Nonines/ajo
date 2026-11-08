@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * Stores a savings event snapshot and independent email delivery progress.
+ *
  * @property string $id
  * @property int $savings_plan_id
  * @property int $user_id

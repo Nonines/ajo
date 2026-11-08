@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
+ * Stores a published terms snapshot selected by new plans and maturity renewal rules.
+ *
  * @property int $id
  * @property int $savings_product_id
  * @property int $version

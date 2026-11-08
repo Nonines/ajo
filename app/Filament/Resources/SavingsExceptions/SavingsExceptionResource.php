@@ -11,6 +11,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Displays blocked savings evidence without exposing edit or delete actions.
+ */
 class SavingsExceptionResource extends Resource
 {
     protected static ?string $model = SavingsException::class;

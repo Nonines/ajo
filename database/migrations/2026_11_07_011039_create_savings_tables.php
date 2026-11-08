@@ -40,6 +40,7 @@ return new class extends Migration
             $table->timestamp('next_process_at')->nullable()->index();
             $table->index(['user_id', 'id']);
         });
+        // One immutable row per contractual date makes chronological accrual replay verifiable.
         Schema::create('plan_accruals', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('savings_plan_id')->constrained();

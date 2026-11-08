@@ -6,7 +6,11 @@ use App\Models\SavingsPlan;
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
 
-/** @extends State<SavingsPlan> */
+/**
+ * Defines the permitted savings plan lifecycle transitions used by the domain services.
+ *
+ * @extends State<SavingsPlan>
+ */
 abstract class PlanState extends State
 {
     public static function config(): StateConfig

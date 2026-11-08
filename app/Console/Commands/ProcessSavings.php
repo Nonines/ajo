@@ -9,6 +9,9 @@ use App\Support\SavingsProcessing;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 
+/**
+ * Discovers due plans or performs a bounded backfill of completed application-calendar dates.
+ */
 class ProcessSavings extends Command
 {
     protected $signature = 'savings:process {--plan= : Process one plan} {--from= : First completed accrual date in the application timezone} {--through= : Last completed accrual date in the application timezone}';

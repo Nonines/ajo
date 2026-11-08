@@ -23,8 +23,14 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Exposes owned savings contracts, dated evidence, and customer lifecycle actions.
+ */
 class SavingsPlanController extends Controller
 {
+    /**
+     * Lists currently offered product versions and the active customer's snapshotted plans.
+     */
     public function index(Request $request, Ledger $ledger): Response
     {
         $user = $request->user('web');
@@ -39,6 +45,9 @@ class SavingsPlanController extends Controller
             'plans' => SavingsPlan::where('user_id', $user->id)->latest('id')->paginate(20)->through(fn (SavingsPlan $plan): array => $this->summary($plan))]);
     }
 
+    /**
+     * Drafts a savings contract from validated terms and maps domain failures to form errors.
+     */
     public function store(StoreSavingsPlanRequest $request, SavingsPlans $plans): RedirectResponse
     {
         try {
@@ -51,6 +60,9 @@ class SavingsPlanController extends Controller
         return to_route('savings.show', $plan);
     }
 
+    /**
+     * Shows an owned plan with accruals, settlement evidence, waiver status, and renewal options.
+     */
     public function show(Request $request, SavingsPlan $plan, SavingsSettlements $settlements, Clock $clock, SavingsAccrual $accrual): Response
     {
         abort_unless($request->user('web')->is_active, 403);
@@ -92,6 +104,9 @@ class SavingsPlanController extends Controller
                 ->through(fn ($row): array => ['date' => $row->accrual_date, 'microKobo' => $row->micro_kobo, 'recognized' => (string) $row->recognized_kobo, 'postedAt' => $row->posted_at])]);
     }
 
+    /**
+     * Returns a freshly checked early-exit quote for an owned plan and optional waiver.
+     */
     public function preview(Request $request, SavingsPlan $plan, SavingsSettlements $settlements): JsonResponse
     {
         abort_unless($request->user('web')->is_active, 403);
@@ -104,6 +119,9 @@ class SavingsPlanController extends Controller
         }
     }
 
+    /**
+     * Dispatches a validated lifecycle action and presents domain failures as action errors.
+     */
     public function update(UpdateSavingsPlanRequest $request, SavingsPlan $plan, SavingsPlans $plans, SavingsSettlements $settlements): RedirectResponse
     {
         abort_unless($request->user('web')->is_active, 403);
@@ -126,7 +144,11 @@ class SavingsPlanController extends Controller
         return to_route('savings.show', $plan);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Serializes the plan snapshot and lifecycle timestamps for the customer interface.
+     *
+     * @return array<string, mixed>
+     */
     private function summary(SavingsPlan $plan): array
     {
         return ['id' => $plan->id, 'state' => (string) $plan->state, 'contract' => $this->transportContract($plan->contract),
@@ -137,6 +159,8 @@ class SavingsPlanController extends Controller
     }
 
     /**
+     * Converts contract rates to strings while retaining numeric term durations for frontend controls.
+     *
      * @param  array<string, mixed>  $contract
      * @return array<string, mixed>
      */

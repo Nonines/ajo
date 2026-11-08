@@ -9,6 +9,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
 
+/**
+ * Processes a committed plan on the accrual queue and retains a retry time on failure.
+ */
 class ProcessSavingsPlan implements ShouldQueue
 {
     use Queueable;
@@ -22,6 +25,9 @@ class ProcessSavingsPlan implements ShouldQueue
         $this->onConnection('redis')->onQueue('accrual')->afterCommit();
     }
 
+    /**
+     * Retains the next processing time before surfacing a worker failure for reporting.
+     */
     public function handle(SavingsProcessing $processing, Clock $clock): void
     {
         try {

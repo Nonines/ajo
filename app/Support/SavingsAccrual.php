@@ -17,22 +17,35 @@ use Closure;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Calculates contractual interest and reconciles dated accrual and capitalization evidence.
+ */
 class SavingsAccrual
 {
     public function __construct(private FinancialTransaction $transactions, private Ledger $ledger, private Clock $clock) {}
 
+    /**
+     * Calculates one Actual/365 day in millionths of a kobo using half-even rounding.
+     */
     public function dailyMicro(string $principal, int $rate): string
     {
         return (string) BigRational::of($principal)->multipliedBy($rate)->multipliedBy(1000000)
             ->dividedBy(3650000)->toScale(0, RoundingMode::HalfEven);
     }
 
+    /**
+     * Rounds cumulative micro-kobo to whole kobo, failing if the result exceeds integer bounds.
+     */
     public function rounded(string $micro): int
     {
         return BigRational::of($micro)->dividedBy(1000000)->toScale(0, RoundingMode::HalfEven)->toBigInteger()->toInt();
     }
 
-    /** @param array<string, mixed> $contract */
+    /**
+     * Starts entitlement preparation and rejects calculation failures detected during this pass.
+     *
+     * @param  array<string, mixed>  $contract
+     */
     public function validateEntitlement(array $contract): void
     {
         try {
@@ -43,6 +56,8 @@ class SavingsAccrual
     }
 
     /**
+     * Advances durable calculation preparation; returns null while more work is required.
+     *
      * @param  array<string, mixed>  $contract
      * @return array{micro: string, recognized: int, capitalized: int}|null
      */
@@ -80,7 +95,11 @@ class SavingsAccrual
         return ['micro' => $last->micro_kobo, 'recognized' => $last->recognized, 'capitalized' => $last->capitalized];
     }
 
-    /** @param array<string, mixed> $contract */
+    /**
+     * Reports the persisted preparation state for the full contractual term.
+     *
+     * @param  array<string, mixed>  $contract
+     */
     public function preparationStatus(array $contract): string
     {
         $fingerprint = hash('sha256', json_encode([$this->calculationContract($contract), $contract['days']], JSON_THROW_ON_ERROR));
@@ -89,6 +108,9 @@ class SavingsAccrual
         return $row?->failure !== null ? 'failed' : ($row?->completed_at !== null ? 'ready' : 'preparing');
     }
 
+    /**
+     * Advances a bounded calculation batch; true means completion or a recorded terminal failure.
+     */
     public function prepareCalculation(string $fingerprint): bool
     {
         return $this->transactions->run([], function () use ($fingerprint): bool {
@@ -132,7 +154,10 @@ class SavingsAccrual
         });
     }
 
-    /** @param array<string, mixed> $contract
+    /**
+     * Selects only interest calculation inputs so equivalent contracts share prepared results.
+     *
+     * @param  array<string, mixed>  $contract
      * @return array{principal: string, annual_rate_bp: int, days: int, interest: string}
      */
     private function calculationContract(array $contract): array
@@ -140,7 +165,11 @@ class SavingsAccrual
         return ['principal' => $contract['principal'], 'annual_rate_bp' => $contract['annual_rate_bp'], 'days' => $contract['days'], 'interest' => $contract['interest'] ?? 'simple'];
     }
 
-    /** @param array<string, mixed> $contract */
+    /**
+     * Maps the contractual compounding mode to its day interval; simple interest has no interval.
+     *
+     * @param  array<string, mixed>  $contract
+     */
     public function interval(array $contract): ?int
     {
         return match ($contract['interest']) {
@@ -149,6 +178,9 @@ class SavingsAccrual
         };
     }
 
+    /**
+     * Posts or checks one completed application-calendar day, requiring chronological accrual evidence.
+     */
     public function date(SavingsPlan $plan, string $date): bool
     {
         $parsed = CarbonImmutable::createFromFormat('!Y-m-d', $date, config('app.timezone'));
@@ -213,6 +245,9 @@ class SavingsAccrual
         });
     }
 
+    /**
+     * Moves recognized interest into principal at pre-maturity boundaries, or validates replay evidence.
+     */
     private function capitalize(SavingsPlan $plan, CarbonImmutable $date, int $recognized, int $previousCapitalized, bool $replay): bool
     {
         $interval = $this->interval($plan->contract);
@@ -246,12 +281,19 @@ class SavingsAccrual
         return true;
     }
 
+    /**
+     * Attempts maturity settlement with overflow failures retained as investigation evidence.
+     */
     public function settle(SavingsPlan $plan): bool
     {
         return $this->run($plan, fn (): bool => app(SavingsSettlements::class)->mature($plan));
     }
 
-    /** @return array{micro: string, recognized: int, capitalized: int}|null */
+    /**
+     * Checks dated coverage and terminal entitlement; returns null for recorded evidence mismatches.
+     *
+     * @return array{micro: string, recognized: int, capitalized: int}|null
+     */
     public function evidence(SavingsPlan $plan, int $days): ?array
     {
         $query = DB::table('plan_accruals')->where('savings_plan_id', $plan->id);
@@ -294,6 +336,9 @@ class SavingsAccrual
         return $expected;
     }
 
+    /**
+     * Counts fully completed application-calendar days, capped at contractual maturity.
+     */
     public function completedDays(SavingsPlan $plan): int
     {
         $cutoff = $this->clock->now()->setTimezone(config('app.timezone'))->startOfDay()->min($plan->matures_at->setTimezone(config('app.timezone')));
@@ -301,6 +346,9 @@ class SavingsAccrual
         return max(0, (int) $plan->accrual_starts_at->setTimezone(config('app.timezone'))->diffInDays($cutoff, false));
     }
 
+    /**
+     * Backfills a bounded batch of completed days; false means further processing is still due.
+     */
     public function catchUp(SavingsPlan $plan): bool
     {
         $days = $this->completedDays($plan);
@@ -322,7 +370,11 @@ class SavingsAccrual
         return true;
     }
 
-    /** @param Closure(): bool $operation */
+    /**
+     * Runs customer-locked work and records posting overflow after the failed transaction rolls back.
+     *
+     * @param  Closure(): bool  $operation
+     */
     private function run(SavingsPlan $plan, Closure $operation): bool
     {
         try {
@@ -336,6 +388,9 @@ class SavingsAccrual
         }
     }
 
+    /**
+     * Retains one exception per plan operation to block further automatic processing.
+     */
     public function investigate(SavingsPlan $plan, string $operation, string $message): void
     {
         DB::table('savings_exceptions')->insertOrIgnore(['savings_plan_id' => $plan->id,

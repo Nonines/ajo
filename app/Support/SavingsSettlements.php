@@ -20,11 +20,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Reconciles savings liabilities before applying closure, recovery allocation, tax, and waivers.
+ */
 class SavingsSettlements
 {
     public function __construct(private FinancialTransaction $transactions, private Clock $clock, private Ledger $ledger,
         private SavingsAccrual $accrual, private SavingsPlans $plans, private SavingsNotices $notices) {}
 
+    /**
+     * Requires an active terminable plan past its holding period, without recovery or investigation blocks.
+     */
     public function earlyEligible(SavingsPlan $plan): void
     {
         if (! $plan->state instanceof Active || $plan->matures_at === null || $this->clock->now()->greaterThanOrEqualTo($plan->matures_at)) {
@@ -44,7 +50,11 @@ class SavingsSettlements
         $this->unblocked($plan);
     }
 
-    /** @return array<string, string> */
+    /**
+     * Catches up accruals before producing a customer-owned closure quote and confirmation token.
+     *
+     * @return array<string, string>
+     */
     public function preview(User $user, SavingsPlan $plan, ?int $waiverId = null): array
     {
         $current = $this->owned($user, $plan);
@@ -61,6 +71,9 @@ class SavingsSettlements
         });
     }
 
+    /**
+     * Rechecks the quote token under the customer lock before applying early termination.
+     */
     public function terminate(User $user, SavingsPlan $plan, string $token, ?int $waiverId = null): SavingsPlan
     {
         return $this->customerOperation($user->id, function () use ($user, $plan, $token, $waiverId): SavingsPlan {
@@ -79,6 +92,9 @@ class SavingsSettlements
         });
     }
 
+    /**
+     * Settles and optionally renews a mature plan atomically; false means blocked or unfinished work.
+     */
     public function mature(SavingsPlan $plan): bool
     {
         return $this->transactions->run([$plan->user_id], function () use ($plan): bool {
@@ -115,7 +131,11 @@ class SavingsSettlements
         });
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * Checks correction evidence and limits pre-maturity administrative closure of locked plans.
+     *
+     * @param  array<string, mixed>  $payload
+     */
     public function validateAdministrative(SavingsPlan $plan, array $payload): void
     {
         if (! $plan->state instanceof Active && ! $plan->state instanceof Matured) {
@@ -130,6 +150,9 @@ class SavingsSettlements
         $this->unblocked($plan);
     }
 
+    /**
+     * Applies an unused two-staff closure approval within the approval transaction.
+     */
     public function administrative(SavingsPlan $plan, ApprovalRequest $approval): void
     {
         $plan = SavingsPlan::findOrFail($plan->id);
@@ -142,7 +165,10 @@ class SavingsSettlements
         $this->close($plan, $this->quote($plan, false), 'admin_closed', $approval->id);
     }
 
-    /** @param array<string, mixed> $payload
+    /**
+     * Validates positive combined waiver ceilings that fit supported integer kobo.
+     *
+     * @param  array<string, mixed>  $payload
      * @return array{interest_cap: string, principal_cap: string}
      */
     public function waiverTerms(SavingsPlan $plan, array $payload): array
@@ -164,6 +190,9 @@ class SavingsSettlements
         return ['interest_cap' => (string) $interest->kobo, 'principal_cap' => (string) $principal->kobo];
     }
 
+    /**
+     * Creates a time-limited waiver from current two-staff approval evidence.
+     */
     public function issueWaiver(SavingsPlan $plan, ApprovalRequest $approval): int
     {
         $plan = SavingsPlan::findOrFail($plan->id);
@@ -181,6 +210,9 @@ class SavingsSettlements
         return $id;
     }
 
+    /**
+     * Requires an active approval transaction and rechecks distinct staff, permissions, subject, and expiry.
+     */
     private function approved(SavingsPlan $plan, ApprovalRequest $approval, string $action, string $makerPermission, string $checkerPermission): ApprovalRequest
     {
         if (DB::transactionLevel() === 0) {
@@ -198,6 +230,9 @@ class SavingsSettlements
         return $current;
     }
 
+    /**
+     * Marks unused waivers expired and records their notification and audit evidence.
+     */
     public function expireWaivers(): void
     {
         DB::table('plan_waivers')->whereNull('used_at')->whereNull('expired_at')->where('expires_at', '<=', $this->clock->now())
@@ -215,7 +250,10 @@ class SavingsSettlements
             });
     }
 
-    /** @param array{micro: string, recognized: int, capitalized: int}|null $evidence
+    /**
+     * Reconciles accrued liabilities and computes deductions, waiver limits, tax, and debt-first proceeds.
+     *
+     * @param  array{micro: string, recognized: int, capitalized: int}|null  $evidence
      * @return array<string, string>
      */
     private function quote(SavingsPlan $plan, bool $early, ?int $waiverId = null, ?array $evidence = null): array
@@ -268,7 +306,11 @@ class SavingsSettlements
         return array_map(strval(...), $quote);
     }
 
-    /** @param array{micro: string, recognized: int, capitalized: int} $evidence */
+    /**
+     * Checks signed principal and interest balances against independently calculated entitlement.
+     *
+     * @param  array{micro: string, recognized: int, capitalized: int}  $evidence
+     */
     private function liabilitiesMatch(SavingsPlan $plan, array $evidence): bool
     {
         $principal = BigInteger::of($plan->contract['principal'])->plus($evidence['capitalized'])->toInt();
@@ -283,13 +325,21 @@ class SavingsSettlements
         return true;
     }
 
-    /** @param array<string, string> $quote */
+    /**
+     * Binds confirmation to the plan, lifecycle state, rollover election, and exact quoted amounts.
+     *
+     * @param  array<string, string>  $quote
+     */
     private function token(SavingsPlan $plan, array $quote): string
     {
         return hash_hmac('sha256', json_encode([$plan->id, $plan->contract, (string) $plan->state, $plan->rollover_election, $quote], JSON_THROW_ON_ERROR), config('app.key'));
     }
 
-    /** @param array<string, string> $quote */
+    /**
+     * Posts deductions and final transfers, then records the settlement, closure, waiver use, and notice.
+     *
+     * @param  array<string, string>  $quote
+     */
     private function close(SavingsPlan $plan, array $quote, string $reason, ?int $approvalId = null): void
     {
         $date = in_array($reason, ['matured_withdrawal', 'rolled_over'], true)
@@ -344,6 +394,9 @@ class SavingsSettlements
         $this->notices->record($plan, $statement);
     }
 
+    /**
+     * Catches up completed days and requires prepared entitlement before closure can proceed.
+     */
     public function prepareClosure(SavingsPlan $plan): void
     {
         if (! $this->accrual->catchUp($plan)) {
@@ -354,6 +407,9 @@ class SavingsSettlements
         }
     }
 
+    /**
+     * Persists mismatch evidence separately after the financial operation has rolled back.
+     */
     public function retainInvestigation(SavingsEvidenceMismatch $failure): void
     {
         $this->transactions->run([$failure->customerId], function () use ($failure): void {
@@ -362,7 +418,11 @@ class SavingsSettlements
         });
     }
 
-    /** @template T
+    /**
+     * Runs customer-locked closure work while retaining evidence mismatches outside its rollback.
+     *
+     * @template T
+     *
      * @param  Closure(): T  $operation
      * @return T
      */
@@ -376,6 +436,9 @@ class SavingsSettlements
         }
     }
 
+    /**
+     * Reloads customer eligibility and fetches the plan through its owner constraint.
+     */
     private function owned(User $user, SavingsPlan $plan): SavingsPlan
     {
         $current = User::findOrFail($user->id);
@@ -386,6 +449,9 @@ class SavingsSettlements
         return SavingsPlan::where('user_id', $user->id)->findOrFail($plan->id);
     }
 
+    /**
+     * Rejects closure while any retained savings exception requires investigation.
+     */
     private function unblocked(SavingsPlan $plan): void
     {
         if (DB::table('savings_exceptions')->where('savings_plan_id', $plan->id)->exists()) {

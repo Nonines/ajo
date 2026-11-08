@@ -12,11 +12,18 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Publishes versioned product terms so changes do not rewrite existing plan contracts.
+ */
 class SavingsProducts
 {
     public function __construct(private FinancialTransaction $transactions, private Clock $clock) {}
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Validates product terms and publishes a new version, requiring approval when revising offered rate terms.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function publish(Staff $staff, array $data, ?SavingsProduct $product = null, ?ApprovalRequest $approval = null): SavingsProduct
     {
         Gate::forUser($staff)->authorize('create', SavingsProduct::class);

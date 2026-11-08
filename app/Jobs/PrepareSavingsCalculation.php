@@ -6,6 +6,9 @@ use App\Support\SavingsAccrual;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
+/**
+ * Advances bounded entitlement preparation on the accrual queue and requeues incomplete work.
+ */
 class PrepareSavingsCalculation implements ShouldQueue
 {
     use Queueable;
@@ -19,6 +22,9 @@ class PrepareSavingsCalculation implements ShouldQueue
         $this->onConnection('redis')->onQueue('accrual')->afterCommit();
     }
 
+    /**
+     * Queues the next batch only while calculation preparation remains unfinished.
+     */
     public function handle(SavingsAccrual $accrual): void
     {
         if (! $accrual->prepareCalculation($this->fingerprint)) {

@@ -39,6 +39,7 @@
     let renewalEnabled = $state(false);
     let renewalDays = $state<number | undefined>(30);
     let renewalMode = $state<'original_principal' | 'all_net'>('original_principal');
+    // Initialize renewal controls once per plan so polling does not overwrite unsaved customer choices.
     let renewalPlanId = $state<number | null>(null);
     $effect(() => {
         if (renewalPlanId !== plan.id) {
@@ -48,6 +49,7 @@
             renewalPlanId = plan.id;
         }
     });
+    // Clear the previous quote before requesting a fresh server-bound confirmation token.
     async function previewExit(event: SubmitEvent) {
         event.preventDefault();
         quote = null;

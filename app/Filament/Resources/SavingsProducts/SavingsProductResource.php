@@ -25,6 +25,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Publishes new terms versions and routes existing-product rate changes through proposals.
+ */
 class SavingsProductResource extends Resource
 {
     protected static ?string $model = SavingsProduct::class;
@@ -83,7 +86,11 @@ class SavingsProductResource extends Resource
             ]);
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Uses the publishing service and maps business-rule failures to the terms form.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public static function publish(array $data, ?SavingsProduct $product = null): SavingsProduct
     {
         $staff = Filament::auth()->user();

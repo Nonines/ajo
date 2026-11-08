@@ -17,6 +17,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Creates staff proposals for plan holds, releases, waivers, and administrative closure.
+ */
 class SavingsPlanResource extends Resource
 {
     protected static ?string $model = SavingsPlan::class;
@@ -77,7 +80,11 @@ class SavingsPlanResource extends Resource
         ])->recordActions($actions);
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Separates the staff reason from the action payload and exposes proposal validation errors.
+     *
+     * @param  array<string, mixed>  $data
+     */
     private static function propose(SavingsPlan $record, string $action, array $data): void
     {
         $staff = Filament::auth()->user();

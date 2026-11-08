@@ -15,6 +15,7 @@ return new class extends Migration
         // SQLite table rebuilds discard triggers; retain the existing financial guards.
         /** @var list<object{name: string, sql: literal-string}> $triggers */
         $triggers = DB::select("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND tbl_name IN ('savings_plans', 'plan_settlements')");
+        // Persist calculation inputs and progress so large entitlements can be prepared across bounded jobs.
         Schema::create('savings_calculations', function (Blueprint $table): void {
             $table->string('fingerprint', 64)->primary();
             $table->text('contract');
@@ -41,6 +42,7 @@ return new class extends Migration
         DB::unprepared("CREATE TRIGGER savings_calculations_immutable BEFORE UPDATE ON savings_calculations WHEN NEW.fingerprint IS NOT OLD.fingerprint OR NEW.contract IS NOT OLD.contract OR NEW.through_days IS NOT OLD.through_days OR (OLD.completed_at IS NOT NULL AND NEW.completed_at IS NOT OLD.completed_at) OR (OLD.failure IS NOT NULL AND NEW.failure IS NOT OLD.failure) BEGIN SELECT RAISE(ABORT, 'Calculation inputs are immutable'); END");
         DB::unprepared("CREATE TRIGGER savings_calculations_no_replace BEFORE INSERT ON savings_calculations WHEN EXISTS (SELECT 1 FROM savings_calculations WHERE fingerprint = NEW.fingerprint) BEGIN SELECT RAISE(ABORT, 'Calculation inputs are immutable'); END");
         Schema::table('savings_plans', function (Blueprint $table): void {
+            // A parent can fund only one renewal child, including when maturity work is replayed.
             $table->foreignId('parent_plan_id')->nullable()->unique()->constrained('savings_plans');
             $table->text('rollover_election')->nullable();
         });

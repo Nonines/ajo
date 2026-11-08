@@ -21,15 +21,24 @@ use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * Manages snapshotted savings contracts, wallet funding, and consented maturity renewals.
+ */
 class SavingsPlans
 {
     public function __construct(private FinancialTransaction $transactions, private Clock $clock, private Ledger $ledger, private SavingsAccrual $accrual) {}
 
+    /**
+     * Creates or replays a draft from an offered product version and the chosen principal and term.
+     */
     public function draft(User $user, SavingsProductVersion $version, Money $principal, int $days, string $requestKey): SavingsPlan
     {
         return $this->create($user, $version, $principal, $days, $requestKey);
     }
 
+    /**
+     * Snapshots terms under the customer lock and rejects request-key reuse with different inputs.
+     */
     private function create(User $user, SavingsProductVersion $version, Money $principal, int $days, string $requestKey, ?SavingsPlan $parent = null): SavingsPlan
     {
         return $this->transactions->run([$user->id], function () use ($user, $version, $principal, $days, $requestKey, $parent): SavingsPlan {
@@ -74,6 +83,9 @@ class SavingsPlans
         });
     }
 
+    /**
+     * Accepts draft terms unless the funding window has already expired.
+     */
     public function accept(User $user, SavingsPlan $plan): SavingsPlan
     {
         return $this->transactions->run([$user->id], function () use ($user, $plan): SavingsPlan {
@@ -94,6 +106,9 @@ class SavingsPlans
         });
     }
 
+    /**
+     * Moves wallet principal into the plan once entitlement is ready; accrual starts next local day.
+     */
     public function fund(User $user, SavingsPlan $plan): SavingsPlan
     {
         return $this->transactions->run([$user->id], function () use ($user, $plan): SavingsPlan {
@@ -146,6 +161,9 @@ class SavingsPlans
         });
     }
 
+    /**
+     * Cancels an unfunded contract while preserving its recorded terms.
+     */
     public function cancel(User $user, SavingsPlan $plan): SavingsPlan
     {
         return $this->transactions->run([$user->id], function () use ($user, $plan): SavingsPlan {
@@ -164,6 +182,9 @@ class SavingsPlans
         });
     }
 
+    /**
+     * Cancels overdue unfunded plans and reports whether the plan is now cancelled.
+     */
     public function expire(SavingsPlan $plan): bool
     {
         if (($plan->state instanceof Draft || $plan->state instanceof PendingFunding) && $this->clock->now()->greaterThanOrEqualTo($plan->funding_deadline)) {
@@ -181,6 +202,9 @@ class SavingsPlans
         return LedgerAccount::where('code', 'customer:'.$plan->user_id.':plan:'.$plan->id.':'.$suffix)->sole();
     }
 
+    /**
+     * Stores or removes consent to renewal under the terms effective at maturity.
+     */
     public function electRollover(User $user, SavingsPlan $plan, bool $enabled, ?int $days, ?string $mode, bool $consent): SavingsPlan
     {
         return $this->transactions->run([$user->id], function () use ($user, $plan, $enabled, $days, $mode, $consent): SavingsPlan {
@@ -201,7 +225,11 @@ class SavingsPlans
         });
     }
 
-    /** @return array{version: SavingsProductVersion, amount: Money, days: int, ready: bool}|null */
+    /**
+     * Selects eligible terms published by maturity; ready distinguishes pending entitlement preparation.
+     *
+     * @return array{version: SavingsProductVersion, amount: Money, days: int, ready: bool}|null
+     */
     public function renewalCandidate(SavingsPlan $parent, int $proceeds): ?array
     {
         $election = $parent->rollover_election;
@@ -235,6 +263,9 @@ class SavingsPlans
         return ['version' => $version, 'amount' => $amount, 'days' => $election['days'], 'ready' => $entitlement !== null];
     }
 
+    /**
+     * Creates and funds at most one child plan from a parent settlement within the same transaction.
+     */
     public function renew(SavingsPlan $parent): SavingsPlan
     {
         return $this->transactions->run([$parent->user_id], function () use ($parent): SavingsPlan {
@@ -266,6 +297,9 @@ class SavingsPlans
         return SavingsPlan::where('user_id', $user->id)->findOrFail($plan->id);
     }
 
+    /**
+     * Reloads customer eligibility so stale caller models cannot bypass active and verified checks.
+     */
     private function eligible(User $user): void
     {
         $current = User::findOrFail($user->id);

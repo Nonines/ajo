@@ -14,11 +14,18 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Throwable;
 
+/**
+ * Keeps savings notice intent in the financial transaction and recovers delivery independently.
+ */
 class SavingsNotices
 {
     public function __construct(private Clock $clock) {}
 
-    /** @param array<string, mixed> $statement */
+    /**
+     * Snapshots settlement amounts as strings and selects the notice type from the closure reason.
+     *
+     * @param  array<string, mixed>  $statement
+     */
     public function record(SavingsPlan $plan, array $statement): void
     {
         if (DB::transactionLevel() === 0) {
@@ -33,7 +40,11 @@ class SavingsNotices
         $this->event($plan, $type, $data, 'plan:'.$plan->id.':settled');
     }
 
-    /** @param array<string, string> $data */
+    /**
+     * Persists one notice per event key and requests delivery after the surrounding transaction commits.
+     *
+     * @param  array<string, string>  $data
+     */
     public function event(SavingsPlan $plan, string $type, array $data, string $eventKey): void
     {
         if (DB::transactionLevel() === 0) {
@@ -55,6 +66,9 @@ class SavingsNotices
         });
     }
 
+    /**
+     * Deduplicates the database notice and retries unsent mail; a crash after sending can repeat email.
+     */
     public function deliver(string $id): void
     {
         $lock = Cache::lock('savings-notice:'.$id, config('payments.claim_seconds'));

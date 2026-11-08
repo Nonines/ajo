@@ -15,10 +15,16 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
+/**
+ * Discovers recoverable savings work and processes completed contractual days in bounded batches.
+ */
 class SavingsProcessing
 {
     public function __construct(private Clock $clock, private SavingsPlans $plans, private SavingsAccrual $accrual, private FinancialTransaction $transactions) {}
 
+    /**
+     * Expires funding windows and waivers, then queues due calculations, plans, and notices.
+     */
     public function discover(): void
     {
         app(SavingsSettlements::class)->expireWaivers();
@@ -54,6 +60,9 @@ class SavingsProcessing
         }, 100);
     }
 
+    /**
+     * Backfills eligible dates and attempts maturity settlement, retaining a due time for unfinished work.
+     */
     public function process(int $id, ?string $through = null): void
     {
         $plan = SavingsPlan::findOrFail($id);

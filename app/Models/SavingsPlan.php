@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\ModelStates\HasStates;
 
 /**
+ * Retains the chosen contract snapshot independently of later published product terms.
+ *
  * @property int $id
  * @property int $user_id
  * @property string $request_key
