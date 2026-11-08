@@ -18,6 +18,7 @@ abstract class PlanState extends State
             ->allowTransition(Active::class, Suspended::class)
             ->allowTransition(Suspended::class, Active::class)
             ->allowTransition(Active::class, Matured::class)
+            ->allowTransition(Active::class, Closed::class)
             ->allowTransition(Matured::class, Closed::class);
     }
 }

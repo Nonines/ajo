@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Contracts\Clock;
 use App\Jobs\DeliverSavingsNotice;
+use App\Jobs\PrepareSavingsCalculation;
 use App\Jobs\ProcessSavingsPlan;
 use App\Models\SavingsNotice;
 use App\Models\SavingsPlan;
@@ -20,6 +21,15 @@ class SavingsProcessing
 
     public function discover(): void
     {
+        app(SavingsSettlements::class)->expireWaivers();
+        DB::table('savings_calculations')->whereNull('completed_at')->whereNull('failure')->where('next_process_at', '<=', $this->clock->now())
+            ->orderBy('fingerprint')->each(function ($calculation): void {
+                try {
+                    PrepareSavingsCalculation::dispatch($calculation->fingerprint);
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            });
         SavingsPlan::whereIn('state', ['draft', 'pending_funding'])->where('funding_deadline', '<=', $this->clock->now())->eachById(function (SavingsPlan $plan): void {
             try {
                 $this->transactions->run([$plan->user_id], fn () => $this->plans->expire($plan->refresh()));
@@ -76,7 +86,11 @@ class SavingsProcessing
             return;
         }
         if ($date->greaterThan($end) && $this->clock->now()->greaterThanOrEqualTo($plan->matures_at) && ! $plan->state instanceof Suspended) {
-            $this->accrual->settle($plan);
+            if (! $this->accrual->settle($plan)) {
+                SavingsPlan::whereKey($id)->whereIn('state', ['active', 'matured'])->update(['next_process_at' => $this->clock->now()->addMinutes(config('savings.retry_minutes'))]);
+
+                return;
+            }
         }
         SavingsPlan::whereKey($id)->whereIn('state', ['active', 'suspended', 'matured'])->update(['next_process_at' => $today->addDay()->addMinutes(5)->utc()]);
     }

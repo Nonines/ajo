@@ -24,13 +24,28 @@ class SavingsNotices
         if (DB::transactionLevel() === 0) {
             throw new \LogicException('Savings notice intent must share the financial transaction.');
         }
-        $data = ['type' => 'savings_maturity', 'plan_id' => (string) $plan->id];
-        foreach (['principal', 'gross_interest', 'net_interest', 'withholding', 'debt_repayment', 'remaining_debt', 'wallet_credit', 'rounding_micro_kobo'] as $key) {
+        $data = [];
+        foreach (['principal', 'gross_interest', 'net_interest', 'withholding', 'debt_repayment', 'remaining_debt', 'wallet_credit', 'rounding_micro_kobo',
+            'capitalized_interest', 'forfeiture', 'principal_penalty', 'waived_forfeiture', 'waived_penalty', 'incurred_fees'] as $key) {
             $data[$key] = (string) $statement[$key];
+        }
+        $type = $plan->closure_reason === 'matured_withdrawal' ? 'savings_maturity' : 'savings_'.$plan->closure_reason;
+        $this->event($plan, $type, $data, 'plan:'.$plan->id.':settled');
+    }
+
+    /** @param array<string, string> $data */
+    public function event(SavingsPlan $plan, string $type, array $data, string $eventKey): void
+    {
+        if (DB::transactionLevel() === 0) {
+            throw new \LogicException('Savings notice intent must share the financial transaction.');
+        }
+        if (SavingsNotice::where('event_key', $eventKey)->exists()) {
+            return;
         }
         $notice = new SavingsNotice;
         $notice->forceFill(['id' => (string) Str::uuid(), 'savings_plan_id' => $plan->id, 'user_id' => $plan->user_id,
-            'recipient' => $plan->user->email, 'data' => $data, 'created_at' => $this->clock->now(), 'next_attempt_at' => $this->clock->now()])->save();
+            'event_key' => $eventKey, 'recipient' => $plan->user->email, 'data' => ['type' => $type, 'plan_id' => (string) $plan->id, ...$data],
+            'created_at' => $this->clock->now(), 'next_attempt_at' => $this->clock->now()])->save();
         DB::afterCommit(function () use ($notice): void {
             try {
                 DeliverSavingsNotice::dispatch($notice->id);
