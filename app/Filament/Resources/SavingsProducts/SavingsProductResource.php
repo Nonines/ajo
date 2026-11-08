@@ -12,10 +12,13 @@ use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -41,7 +44,15 @@ class SavingsProductResource extends Resource
         return [
             TextInput::make('name')->required()->maxLength(255),
             Textarea::make('disclosure')->required()->maxLength(10000)->columnSpanFull()
-                ->helperText('Fixed-term simple interest, Actual/365, locked until maturity. No plan fees. Net maturity proceeds repay recovery debt first.'),
+                ->helperText('Explain the interest mode, lock, holding period and deductions. No plan fees. Net maturity proceeds repay recovery debt first.'),
+            Toggle::make('available')->label('Available for new plans and renewals')->default(true),
+            Select::make('interest')->options(['simple' => 'Simple interest', 'daily' => 'Daily compounding', '30_days' => 'Compounding every 30 days'])->default('simple')->required(),
+            Select::make('lock')->options(['terminable' => 'Terminable after minimum holding', 'uncancellable' => 'Uncancellable until maturity',
+                'until_maturity' => 'Existing lock until maturity'])->default('uncancellable')->required()->live(),
+            TextInput::make('minimum_holding_days')->label('Minimum holding (whole days from accrual start)')->integer()->minValue(1)
+                ->visible(fn (Get $get): bool => $get('lock') === 'terminable')->required(fn (Get $get): bool => $get('lock') === 'terminable'),
+            TextInput::make('forfeiture_bp')->label('Early-exit interest forfeiture (basis points)')->integer()->minValue(0)->maxValue(10000)->default(0)->required(),
+            TextInput::make('principal_penalty_bp')->label('Early-exit original-principal penalty (basis points)')->integer()->minValue(0)->maxValue(10000)->default(0)->required(),
             TextInput::make('minimum')->label('Minimum principal (kobo)')->required()->rules(['regex:/^[1-9][0-9]*$/D']),
             TextInput::make('maximum')->label('Maximum principal (kobo)')->required()->rules(['regex:/^[1-9][0-9]*$/D']),
             TextInput::make('withholding_bp')->label('Withholding (basis points)')->integer()->minValue(0)->maxValue(10000)->default(config('savings.withholding_bp'))->required(),
