@@ -2,9 +2,7 @@
 
 [Back to the project overview](../README.md)
 
-The financial capabilities listed below are implemented in code. Real Paystack test-mode acceptance and deployment verification remain separate checks; production payments and later delivery slices remain outside scope.
-
-Implemented capabilities include customer authentication, isolated staff panels with mandatory MFA, role permissions, injectable clocks, branded interfaces, Redis/Horizon infrastructure, exact NGN money values, an immutable double-entry ledger, customer wallets with balances and transaction history, test-mode deposits and withdrawals, recovery and staff approvals, a tamper-evident audit trail, fixed-term savings with compounding, early closure, waivers, and rollover, and a demo time machine with seeded financial history.
+This guide explains how Ajo's code is organized and how its financial flows connect. The [project overview](../README.md) covers scope and what the project demonstrates. [Definitions](definitions.md) explain the terminology.
 
 ## Directory structure
 
@@ -99,7 +97,7 @@ Support classes are grouped by responsibility. A service imports shared code fro
 - **Registration and wallets:** `CreateNewUser` creates a `User` and calls `Wallets::provision` in one transaction. Each customer gets a wallet liability account and a recovery receivable account. `WalletController` reads ledger history and reverses liability signs for customer display.
 - **Deposits:** `DepositController` calls `Deposits` to save a `Deposit` before opening checkout. Browser returns request verification; authenticated webhooks enter `PaymentInbox` as `WebhookEvent` records. Workers fetch provider evidence before `Deposits` posts value through `Ledger`. Processing a receipt does not mean the payment has reached a final outcome.
 - **Withdrawals and approvals:** `SavedDestinationController` uses `Destinations` to verify and save bank details. `WithdrawalController` calls `Withdrawals` to reserve principal and fees in a `WithdrawalRequest`. Reservations above the saved review threshold require a distinct requester and checker through `Approvals` and `ApprovalRequest`; reservations at or below that threshold use direct staff review. Dispatch commits submission intent before the provider call; the provider approval callback checks that reservation, and verification jobs reconcile the final outcome and actual fee.
-- **Savings:** `SavingsPlanController` uses `SavingsPlans` to create, accept, and fund a `SavingsPlan` with a copy of its `SavingsProductVersion` terms. `SavingsProcessing` queues work; `SavingsAccrual` records completed days and compounding evidence in bounded batches. `SavingsSettlements` checks that evidence before settlement at maturity or early closure, applies deductions and approved waivers, and can fund one renewal child at maturity when the customer has consented and remains eligible.
+- **Savings:** `SavingsPlanController` uses `SavingsPlans` to create, accept, and fund a `SavingsPlan` with a copy of its `SavingsProductVersion` terms. `SavingsProcessing` queues work; `SavingsAccrual` records completed days and compounding evidence in bounded batches. `SavingsSettlements` checks that evidence before settlement at maturity, early closure, or administrative closure, applies deductions and approved waivers, and can fund one renewal child at maturity when the customer has consented and remains eligible.
 - **Recovery and notices:** `DepositRecovery` verifies refund deductions; `RecoveryControls` directs incoming value to recovery debt before wallet credit. Outstanding debt blocks new spending flows such as payouts and savings funding. Payment and savings notice intent is saved with the financial transaction; workers deliver it separately, while scheduled commands rediscover due work after queue failures.
 - **Audit:** `AuditTrail` redacts recognized sensitive fields and appends signed `AuditEvent` records in a hash chain. `SecurityAudit` adds authentication and staff-access events. `AuditArchives` verifies and archives old prefixes during maintenance, then removes expired files while retaining signed boundary records.
 - **Demo time:** With `APP_ENV=demo`, `DemoClock` reads a shared persisted instant. `DemoTimeMachine` processes due financial work before advancing to the next scheduled instant. `DemoHistory` uses the ordinary payment, savings, and settlement services to build fictional history with resumable checkpoints.
@@ -116,11 +114,8 @@ Key stored links:
 
 ## Money, ledger, and wallets
 
-- Money uses integer kobo with exact decimal-string JSON serialization. `Money::fromNaira()` parses nonnegative decimal naira for deposit, withdrawal, and savings requests; each request retains its own validation and limits. `Money::toNaira()` formats exact two-decimal amounts for financial emails without floats. Basis-point calculations use exact arithmetic and half-even rounding to whole kobo.
-- Journals require balanced, nonzero entries. Operation keys make identical requests idempotent and reject reuse with different inputs. Posted journals and entries are immutable, with database triggers guarding against updates, deletes, and replacement collisions.
-- Corrections use linked reversing journals, preserving the original history. Economic effective dates are stored separately from UTC posting timestamps.
-- Account balances are rebuildable projections. Posting validates balances against ledger entries and prevents wallet overspending; spending requires an active customer with a verified email.
-- Registration atomically creates the customer and an empty wallet without opening journals. The wallet page shows the authenticated customer's NGN balance and paginated history, including effective dates and posting timestamps.
+- `Money::fromNaira()` parses nonnegative decimal naira for deposit, withdrawal, and savings requests; each request retains its own validation and limits. `Money::toNaira()` formats exact two-decimal amounts for financial emails without floats.
+- Beyond the ledger rules in the [project overview](../README.md#features), journals reject zero-amount entries. Triggers also reject `REPLACE` collisions on journal and entry IDs, operation keys, and reversal links, which could otherwise bypass delete triggers.
+- Posting validates balances against ledger entries and prevents wallet overspending; spending requires an active customer with a verified email.
+- A new wallet starts empty, with no opening journal. The wallet page shows the authenticated customer's NGN balance and paginated history, including economic effective dates and UTC posting timestamps.
 - Account closure records an audit event and deactivates the customer, retaining financial and audit references.
-
-Deposits and withdrawals verify provider evidence server-side before recognizing financial effects. Savings support simple, daily, and 30-day compounding, customer early termination, approved waivers and administrative closure, and maturity rollover. See [definitions](definitions.md) for terminology.

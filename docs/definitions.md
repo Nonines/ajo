@@ -21,8 +21,6 @@ This is a plain-language guide to words, field names, settings, and rules used i
 
 Sources: [Money](../app/Support/Money/Money.php), [BasisPoints](../app/Support/Money/BasisPoints.php), [savings interest](../app/Support/Savings/SavingsAccrual.php), and [withdrawals](../app/Support/Withdrawals/Withdrawals.php).
 
-`Money::fromNaira()` converts nonnegative decimal naira, such as `1000.12`, into integer kobo (`100012`) without floats. Deposit, withdrawal, and savings requests share it while keeping their own validation and limits. `Money::toNaira()` formats integer kobo with exactly two decimal places for financial emails. JSON amounts still contain integer kobo strings.
-
 | Term or field                          | What it means and what it affects                                                                                                                                                                                                                |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | NGN / naira / kobo                     | NGN is the currency code for Nigerian naira. ₦1 is 100 kobo. Ajo records money in whole kobo.                                                                                                                                                    |
@@ -106,7 +104,7 @@ Sources: [products](../app/Support/Savings/SavingsProducts.php), [plans](../app/
 | Early termination / forfeiture | Ending funded savings before maturity / giving up some interest under exit rules. Terminable contracts permit full early closure after their minimum holding period; forfeiture includes capitalized interest. |
 | Rollover                       | Starting a new saving period using proceeds from an ending plan. It requires a pre-maturity election and consent to terms effective at maturity; ineligible renewals fall back to wallet settlement.           |
 
-Calculation preparation stores a contract fingerprint and resumable checkpoints before funding. `preparationStatus` is `preparing`, `ready`, or `failed`. New plans and renewals initialize it transactionally. Legacy development records or imports that bypass preparation can remain blocked from UI funding.
+Calculation preparation stores a contract fingerprint and resumable checkpoints before funding. `preparationStatus` is `preparing`, `ready`, or `failed`. New plans and renewals initialize it transactionally; see [setup](operations.md#setup) for older records.
 
 `parent_plan_id` links a renewed child to its parent. `rollover_election` stores the chosen term, amount mode, and consent. Capitalization moves recognized interest into interest-bearing principal. A penalty waiver has separate monetary caps for interest forfeiture and principal penalties, is single-use, and expires after approval. See [settlements](../app/Support/Savings/SavingsSettlements.php).
 
@@ -225,14 +223,13 @@ When adding a new term, explain its unit, what changes it, and what it affects. 
 
 Sources: [demo clock](../app/Support/Clock/DemoClock.php), [time machine](../app/Support/Demo/DemoTimeMachine.php), [history](../app/Support/Demo/DemoHistory.php), and [demo configuration](../config/demo.php).
 
-| Term or setting          | Meaning and behavior                                                                                                                                                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Demo mode                | `APP_ENV=demo` selects a shared persisted clock and simulated provider evidence. Real provider calls and discovery are disabled.                                                                                                |
-| Time machine             | An active administrator with `simulator.use` can request up to 365 whole application-calendar days of advancement. Due financial work finishes before the clock advances. Time cannot rewind.                                   |
-| `demo_state`             | Saves the current instant, requested target, failures, and history checkpoints. Processing resumes from these records after a disconnect or interruption.                                                                       |
-| `DEMO_START_AT`          | Optional initial UTC instant. If omitted, the clock starts 400 days before setup at 00:05 in the application timezone.                                                                                                          |
-| `DEMO_CUSTOMER_PASSWORD` | Password supplied for the fictional `demo@example.test` customer. It must contain at least 12 characters. No password value is stored in this guide.                                                                            |
-| `DemoHistorySeeder`      | Runs independently and builds fictional history through ordinary financial services. It requires an empty customer, product, and financial dataset; staff may already exist. Completed stages are retained for safe resumption. |
-| Demo delivery            | Jobs run synchronously, including the queue connection named `redis`. Redis still provides the default cache and locks. In-app notices are saved; financial email sending is suppressed.                                        |
+| Term or setting          | Meaning                                                                                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Demo mode                | `APP_ENV=demo` replaces real time with a shared persisted clock and disables Paystack calls. Payments use the separately enabled simulator.               |
+| Time machine             | The admin page that advances the demo clock.                                                                                                              |
+| `demo_state`             | Saves the current instant, requested target, failures, and history checkpoints. Processing resumes from these records after a disconnect or interruption. |
+| `DEMO_START_AT`          | Optional initial UTC instant for the demo clock.                                                                                                          |
+| `DEMO_CUSTOMER_PASSWORD` | Password for the fictional `demo@example.test` customer. No password value is stored in this guide.                                                       |
+| `DemoHistorySeeder`      | The seeder that builds the fictional demo history.                                                                                                        |
 
-Staff decisions and simulated provider outcomes remain manual. Saved failures, real provider records, and open provider investigations block time advancement.
+See [demo mode](operations.md#demo-mode) for setup, limits, and the conditions that block advancement.
